@@ -1,0 +1,158 @@
+import time
+import pandas as pd
+from datetime import datetime
+import re
+
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from rapidfuzz import fuzz
+import undetected_chromedriver as uc
+
+# -------------------------------------------------------------
+products = [
+    "Яйца куриные Окское С0, белые, 10шт",
+    "Батон Коломенский Нарезной 200г",
+    "Молоко Простоквашино отборное пастеризованное 3.4-4.5%",
+    "Сахар песок белый 1кг",
+    "Соль пищевая 1кг",
+    "Крупа гречневая ядрица 900г",
+    "Масло Олейна подсолнечное 1л",
+    "Масло Брест-Литовск сливочное 82,5% 180г",
+    "Бедро куриное Петелинка",
+    "Чай Greenfield Golden Ceylon 100г",
+    "Картофель",
+    "Лук репчатый",
+    "Морковь",
+    "Капуста белокочанная",
+    "Яблоки"
+]
+
+results = []
+today = datetime.today().strftime("%Y-%m-%d")
+
+# -------------------------------------------------------------
+def split_name_unit(product):
+    match = re.search(r"(\d+(\.\d+)?\s?(г|кг|мл|л|шт))", product, re.IGNORECASE)
+    if match:
+        return product.replace(match.group(1), "").strip(), match.group(1)
+    return product, ""
+
+# -------------------------------------------------------------
+options = uc.ChromeOptions()
+options.add_argument("--start-maximized")
+options.add_argument("--disable-blink-features=AutomationControlled")
+driver = uc.Chrome(options=options)
+driver.get("https://globus.ru/")
+time.sleep(4)
+
+print("\n============== ГЛОБУС ==============\n")
+
+# -------------------------------------------------------------
+# Кнопка "Выбрать город"
+# -------------------------------------------------------------
+try:
+    btn = WebDriverWait(driver, 10).until(
+        EC.element_to_be_clickable((By.CSS_SELECTOR, "span.js-select-town.button-select.see"))
+    )
+    driver.execute_script("arguments[0].click();", btn)
+    print("✔ Кнопка «Выбрать» нажата")
+    time.sleep(1)
+except:
+    print("⚠ Кнопка «Выбрать» не появилась")
+
+# -------------------------------------------------------------
+# Основной цикл
+# -------------------------------------------------------------
+for product in products:
+    print(f"\n🔎 Ищем: {product}")
+    name_only, unit_default = split_name_unit(product)
+    if not unit_default:
+        unit_default = "1 кг"
+
+    try:
+        # Поиск
+        search_box = WebDriverWait(driver, 15).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "input.search-form__input.js-search-form__input"))
+        )
+        driver.execute_script("arguments[0].value='';", search_box)
+        search_box.clear()
+        search_box.send_keys(product)
+        search_box.send_keys(Keys.ENTER)
+        time.sleep(2)
+
+        # Список результатов
+        links = WebDriverWait(driver, 10).until(
+            EC.presence_of_all_elements_located((By.CSS_SELECTOR, "ul li a"))
+        )
+
+        candidates = []
+        for link in links:
+            title = link.text.strip()
+            href = link.get_attribute("href")
+            if title and href:
+                score = fuzz.token_sort_ratio(name_only.lower(), title.lower())
+                candidates.append((title, href, score))
+
+        if not candidates:
+            print(f"⚠ {product} — результатов не найдено")
+            results.append({"store": "Глобус", "product": product, "unit": unit_default, "price": None, "date": today})
+            continue
+
+        best = max(candidates, key=lambda x: x[2])
+        best_title, best_url, best_score = best
+
+        if best_score < 25:
+            print(f"⚠ {product} — плохое совпадение (score={best_score})")
+            results.append({"store": "Глобус", "product": product, "unit": unit_default, "price": None, "date": today})
+            continue
+
+        print(f"➡ Лучшее совпадение: {best_title} (score={best_score})")
+
+        # Переходим на страницу товара
+        driver.get(best_url)
+        time.sleep(2)
+
+        # -------------------------------------------------
+        # Цена
+        # -------------------------------------------------
+        try:
+            price_main = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, ".catalog-detail__item-price-actual-main"))
+            ).text.strip()
+            price_sub = driver.find_element(By.CSS_SELECTOR, ".catalog-detail__item-price-actual-sub").text.strip()
+            price = f"{price_main}.{price_sub} ₽"
+        except:
+            price = None
+
+        # -------------------------------------------------
+        # Вес
+        # -------------------------------------------------
+        try:
+            info_text = driver.find_element(By.CSS_SELECTOR, ".product-info").text
+            unit_match = re.search(r"(\d+\s?(г|кг|мл|л|шт))", info_text)
+            unit = unit_match.group(1) if unit_match else unit_default
+        except:
+            unit = unit_default
+
+        # -------------------------------------------------
+        # Сохранение
+        # -------------------------------------------------
+        results.append({"store": "Глобус", "product": product, "unit": unit, "price": price, "date": today})
+        print(f"✅ {product} — {price} — {unit}")
+
+    except Exception as e:
+        print(f"❌ Ошибка: {e}")
+        results.append({"store": "Глобус", "product": product, "unit": unit_default, "price": None, "date": today})
+
+    time.sleep(1)
+
+# -------------------------------------------------------------
+# Завершение
+# -------------------------------------------------------------
+driver.quit()
+
+df = pd.DataFrame(results)
+df.to_csv("globus_prices.csv", index=False, encoding="utf-8-sig")
+print("\n💾 Файл globus_prices.csv сохранён.")

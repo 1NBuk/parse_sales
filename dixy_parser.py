@@ -11,8 +11,10 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from rapidfuzz import fuzz
 
-CHROMEDRIVER_PATH = r"C:\Users\KN\Tools\chromedriver.exe"
+# Путь к chromedriver
+CHROMEDRIVER_PATH = r"C:\Users\User\Tools\chromedriver.exe"
 
+# Список продуктов
 products = [
     "Яйцо куриное Окское отборное С0 10шт",
     "Батон Коломенский Нарезной 200г",
@@ -23,7 +25,7 @@ products = [
     "Масло Олейна подсолнечное 1л",
     "Масло Брест-Литовск сливочное 82,5% 180г",
     "Бедро куриное Петелинка",
-    "Чай Greenfield Golden Ceylon 200г",
+    "Чай Greenfield Golden Ceylon 100г",
     "Картофель",
     "Лук репчатый",
     "Морковь",
@@ -33,6 +35,7 @@ products = [
 
 results = []
 today = datetime.today().strftime("%Y-%m-%d")
+
 
 def split_name_unit(product):
     match = re.search(r"(\d+(\.\d+)?\s?(г|кг|мл|л|шт))", product, re.IGNORECASE)
@@ -44,7 +47,8 @@ def split_name_unit(product):
         name = product
     return name, unit
 
-# Selenium
+
+# Настройки Selenium
 options = Options()
 options.add_argument("--start-maximized")
 options.add_argument("--disable-blink-features=AutomationControlled")
@@ -56,20 +60,22 @@ for product in products:
     encoded_query = urllib.parse.quote(product)
     url = f"https://dixy.ru/catalog/?q={encoded_query}"
     driver.get(url)
-    time.sleep(2)
+
+    time.sleep(2)  # подождать загрузку страницы
 
     try:
         WebDriverWait(driver, 10).until(
-            EC.presence_of_all_elements_located((By.CSS_SELECTOR, "div.catalog-item"))
+            EC.presence_of_all_elements_located((By.CSS_SELECTOR, "article.card.bs-state"))
         )
 
-        cards = driver.find_elements(By.CSS_SELECTOR, "div.catalog-item")
+        cards = driver.find_elements(By.CSS_SELECTOR, "article.card.bs-state")
         selected_card = None
         max_score = 0
 
+        # ищем максимально похожий товар
         for card in cards:
             try:
-                title_elem = card.find_element(By.CSS_SELECTOR, "div.card__info > p.card__title")
+                title_elem = card.find_element(By.CSS_SELECTOR, "p.card__title")
                 title_text = title_elem.text.strip().lower()
                 score = fuzz.token_sort_ratio(name_only.lower(), title_text)
                 if score > max_score:
@@ -78,21 +84,22 @@ for product in products:
             except:
                 continue
 
-        if selected_card and max_score > 50:
-            # Цена
+        if selected_card and max_score > 20:
+            # получить цену
             try:
-                price_elem = selected_card.find_element(By.CSS_SELECTOR, "div.card__price-num")
-                main_price = re.search(r'\d+', price_elem.text).group()
-                frac_elem = price_elem.find_element(By.TAG_NAME, "span")
-                frac_price = frac_elem.text.strip()
-                price = f"{main_price},{frac_price} ₽"
+                price_block = selected_card.find_element(By.CSS_SELECTOR, "div.card__price-num")
+                main_part = re.search(r'\d+', price_block.text).group()
+                spans = price_block.find_elements(By.TAG_NAME, "span")
+                frac_part = spans[0].text.strip() if spans else "00"
+                price = f"{main_part},{frac_part} ₽"
             except:
                 price = None
 
-            # Единица
+            # получить единицу
             try:
-                unit_elem = selected_card.find_element(By.CSS_SELECTOR, "span.catalog-item__measure")
-                unit_from_site = unit_elem.text.strip() if unit_elem else unit_default or "1000 гр"
+                text = selected_card.text
+                match_unit = re.search(r"(\d+\s?(г|кг|мл|л|шт))", text)
+                unit_from_site = match_unit.group(1) if match_unit else unit_default or "1000 гр"
             except:
                 unit_from_site = unit_default or "1000 гр"
 
@@ -104,8 +111,9 @@ for product in products:
                 "date": today
             })
             print(f"✅ {name_only} — {price} — {unit_from_site} (score: {max_score})")
+
         else:
-            print(f"⚠️ Дикси — {name_only} — товар не найден")
+            print(f"⚠️ Дикси — {name_only} — товар не найден (max score {max_score})")
             results.append({
                 "store": "Дикси",
                 "product": product,
@@ -128,7 +136,7 @@ for product in products:
 
 driver.quit()
 
-# CSV
+# сохраняем CSV
 df = pd.DataFrame(results)
 df.to_csv("dixy_prices.csv", index=False, encoding="utf-8-sig")
 print(f"💾 Сохранено {len(df)} записей в dixy_prices.csv")
