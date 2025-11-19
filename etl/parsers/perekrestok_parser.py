@@ -10,7 +10,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-CHROMEDRIVER_PATH = r"C:\Users\KN\Tools\chromedriver.exe"
+CHROMEDRIVER_PATH = r"C:\Users\User\Tools\chromedriver.exe"
 
 products = [
     "Яйцо куриное Окское отборное С0 10шт",
