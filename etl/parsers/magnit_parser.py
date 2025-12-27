@@ -11,25 +11,23 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+import os
 
 CHROMEDRIVER_PATH = r"C:\Users\User\Tools\chromedriver.exe"
 
-products = [
-    "Яйцо куриное Окское С0 10шт",
-    "Батон Коломенский Нарезной 200г",
-    "Молоко Простоквашино отборное пастеризованное 3.4-4.5%",
-    "Сахар песок белый 1кг",
-    "Соль пищевая 1кг",
-    "Крупа гречневая ядрица 900г",
-    "Масло Олейна подсолнечное 1л",
-    "Масло Брест-Литовск сливочное 82,5% 180г",
-    "Бедро куриное Петелинка",
-    "Чай Greenfield Golden Ceylon 100г",
+products = [ "Яйцо куриное Окское С0 10шт", "Батон Коломенский Нарезной 200г",
+             "Молоко Простоквашино отборное пастеризованное 3.4-4.5%", "Сахар кусковой белый 1кг",
+             "Соль пищевая 1кг", "Крупа гречневая Мистраль 900г", "Масло Олейна подсолнечное 1л",
+             "Масло Брест-Литовск сливочное 82,5% 180г", "Филе грудки цыпленка Петелинка",
+             "Чай Greenfield Golden Ceylon 100г", "Картофель", "Лук репчатый", "Морковь",
+             "Капуста белокочанная", "Яблоки сезонные" ]
+
+WEIGHT_PRODUCTS = [
     "Картофель",
     "Лук репчатый",
     "Морковь",
     "Капуста белокочанная",
-    "Яблоки"
+    "Яблоки сезонные"
 ]
 
 # Адрес для выбора
@@ -119,12 +117,22 @@ for product in products:
                 continue
 
         if best_card and best_score >= 60:
+            card_root = best_card.find_element(By.XPATH,
+                                               "./ancestor::div[contains(@class,'unit-catalog-product-preview-description')]")
             try:
-                price_el = best_card.find_element(By.CSS_SELECTOR, ".unit-catalog-product-preview-prices__regular")
-                price_raw = price_el.text.strip()
-                price = re.sub(r"[^\d,\.]", "", price_raw)
-                if ',' not in price and '.' in price:
-                    price = price.replace('.', ',')
+                if product in WEIGHT_PRODUCTS:
+                    # цена за 1 кг
+                    weight_el = card_root.find_element(By.CSS_SELECTOR, ".unit-catalog-product-preview-weighted span")
+                    price_text = weight_el.text.strip()
+                else:
+                    # обычная цена
+                    price_el = card_root.find_element(By.CSS_SELECTOR,
+                                                      ".unit-catalog-product-preview-prices__regular span")
+                    price_text = price_el.text.strip()
+
+                # чистим цену
+                price = re.search(r"(\d+[,.]?\d*)", price_text)
+                price = price.group(1).replace('.', ',') if price else None
             except:
                 price = None
 
@@ -142,10 +150,10 @@ for product in products:
                 "unit": unit_from_site,
                 "date": today
             })
-            print(f"✅ {product} → {price} ({best_title})")
+            print(f"{product} → {price} ({best_title})")
 
         else:
-            print(f"⚠️ Не найдено: {product}")
+            print(f"Не найдено: {product}")
             results.append({
                 "store": "Магнит",
                 "product": product,
@@ -164,5 +172,9 @@ driver.quit()
 
 # --- Сохраняем CSV ---
 df = pd.DataFrame(results)
-df.to_csv("magnit_prices.csv", index=False, encoding="utf-8-sig")
-print("\n💾 Готово: magnit_prices.csv")
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../data/raw"))
+os.makedirs(BASE_DIR, exist_ok=True)
+file_path = os.path.join(BASE_DIR, "magnit_prices.csv")
+df.to_csv(file_path, index=False, encoding="utf-8-sig")
+print(f"Сохранено {len(df)} записей в {file_path}")
+

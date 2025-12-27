@@ -10,6 +10,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from rapidfuzz import fuzz
+import os
 
 # Путь к chromedriver
 CHROMEDRIVER_PATH = r"C:\Users\User\Tools\chromedriver.exe"
@@ -19,18 +20,18 @@ products = [
     "Яйцо куриное Окское отборное С0 10шт",
     "Батон Коломенский Нарезной 200г",
     "Молоко Простоквашино отборное пастеризованное 3.4-4.5%",
-    "Сахар песок белый 1кг",
+    "Сахар кусковой белый 1кг",
     "Соль пищевая 1кг",
-    "Крупа гречневая ядрица 900г",
+    "Крупа гречневая Мистраль 900г",
     "Масло Олейна подсолнечное 1л",
     "Масло Брест-Литовск сливочное 82,5% 180г",
-    "Бедро куриное Петелинка",
+    "Филе грудки цыпленка Петелинка",
     "Чай Greenfield Golden Ceylon 100г",
     "Картофель",
     "Лук репчатый",
     "Морковь",
     "Капуста белокочанная",
-    "Яблоки"
+    "Яблоки сезонные"
 ]
 
 results = []
@@ -110,10 +111,10 @@ for product in products:
                 "price": price,
                 "date": today
             })
-            print(f"✅ {name_only} — {price} — {unit_from_site} (score: {max_score})")
+            print(f"{name_only} — {price} — {unit_from_site} (score: {max_score})")
 
         else:
-            print(f"⚠️ Дикси — {name_only} — товар не найден (max score {max_score})")
+            print(f"Дикси — {name_only} — товар не найден (max score {max_score})")
             results.append({
                 "store": "Дикси",
                 "product": product,
@@ -123,7 +124,7 @@ for product in products:
             })
 
     except Exception as e:
-        print(f"⚠️ Дикси — {name_only} — ошибка: {e}")
+        print(f"Дикси — {name_only} — ошибка: {e}")
         results.append({
             "store": "Дикси",
             "product": product,
@@ -138,5 +139,9 @@ driver.quit()
 
 # сохраняем CSV
 df = pd.DataFrame(results)
-df.to_csv("dixy_prices.csv", index=False, encoding="utf-8-sig")
-print(f"💾 Сохранено {len(df)} записей в dixy_prices.csv")
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../data/raw"))
+os.makedirs(BASE_DIR, exist_ok=True)
+file_path = os.path.join(BASE_DIR, "dixy_prices.csv")
+df.to_csv(file_path, index=False, encoding="utf-8-sig")
+print(f"Сохранено {len(df)} записей в {file_path}")
+

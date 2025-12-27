@@ -4,191 +4,152 @@ import re
 from datetime import datetime
 from rapidfuzz import fuzz
 from urllib.parse import quote
-
+import os
 import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
+
 products = [
     "Яйцо куриное Окское С0 10шт",
     "Батон Коломенский Нарезной 200г",
     "Молоко Простоквашино отборное пастеризованное",
-    "Сахар песок белый 1кг",
+    "Сахар кусковой белый 1кг",
     "Соль пищевая 1кг",
-    "Крупа гречневая ядрица 900г",
+    "Крупа гречневая Мистраль 900г",
     "Масло Олейна подсолнечное 1л",
-    "Масло Брест-Литовск сливочное 180г",
-    "Бедро куриное Петелинка",
+    "Масло Брест-Литовск сливочное 82,5% 180г",
+    "Филе грудки цыпленка Петелинка",
     "Чай Greenfield Golden Ceylon 100г",
+    "Картофель",
+    "Лук репчатый",
+    "Морковь весовая",
+    "Капуста белокочанная",
+    "Яблоки сезонные"
+]
+WEIGHT_PRODUCTS = [
     "Картофель",
     "Лук репчатый",
     "Морковь",
     "Капуста белокочанная",
-    "Яблоки"
+    "Яблоки сезонные"
 ]
 
-
 def create_driver():
+    """Создание Chrome с автоподбором драйвера под текущий браузер"""
     options = uc.ChromeOptions()
     options.add_argument("--start-maximized")
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_argument("--disable-infobars")
-
     prefs = {
         "profile.default_content_setting_values.geolocation": 2,
         "profile.default_content_setting_values.notifications": 2
     }
     options.add_experimental_option("prefs", prefs)
 
-    return uc.Chrome(options=options)
+    # Подбираем драйвер под версию Chrome 142
+    driver = uc.Chrome(version_main=142, options=options)
+    return driver
 
 
-def close_popups_fast(driver):
-    try:
-        selectors_to_try = [
-            "button.popup__close",
-            "div.flocktory-widget-overlay",
-            "div.modal button",
-            "[aria-label='Close']",
-            ".close-btn"
-        ]
-
-        for selector in selectors_to_try:
+def close_popups(driver):
+    """Закрытие всплывающих окон"""
+    selectors = [
+        "button.popup__close",
+        "div.flocktory-widget-overlay",
+        "div.modal button",
+        "[aria-label='Close']",
+        ".close-btn"
+    ]
+    for selector in selectors:
+        for el in driver.find_elements(By.CSS_SELECTOR, selector):
             try:
-                elements = driver.find_elements(By.CSS_SELECTOR, selector)
-                for element in elements:
-                    try:
-                        driver.execute_script("arguments[0].click();", element)
-                    except:
-                        pass
+                driver.execute_script("arguments[0].click();", el)
             except:
-                pass
-    except:
-        pass
-
-
-def search_product_fast(driver, product_name):
-    try:
-        clean_query = re.sub(r'[%&?=]', '', product_name)
-        encoded_query = quote(clean_query, safe='')
-        search_url = f"https://lenta.com/search/{encoded_query}/"
-
-        print(f"Переходим: {search_url}")
-        driver.get(search_url)
-
-        time.sleep(3)
-        close_popups_fast(driver)
-
-        try:
-            WebDriverWait(driver, 8).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, "lu-product-card"))
-            )
-            print("Карточки загружены")
-        except:
-            try:
-                results_title = driver.find_elements(By.XPATH, "//h1[contains(text(), 'Результаты по запросу')]")
-                if results_title:
-                    print("Страница результатов загружена")
-                else:
-                    no_results = driver.find_elements(By.XPATH,
-                                                      "//*[contains(text(), 'ничего не найдено') or contains(text(), 'Не найдено')]")
-                    if no_results:
-                        print("Ничего не найдено")
-                        return []
-                    else:
-                        print("Не удалось определить статус загрузки")
-                        return []
-            except:
-                print("Ошибка при проверке результатов")
-                return []
-
-        cards = driver.find_elements(By.CSS_SELECTOR, "lu-product-card")
-        print(f"Найдено карточек: {len(cards)}")
-
-        results = []
-
-        for card in cards[:15]:
-            try:
-                name_element = card.find_element(By.CSS_SELECTOR, "span.card-name_content")
-                name = name_element.text.strip()
-
-                unit = None
-                try:
-                    unit_element = card.find_element(By.CSS_SELECTOR, "p.card-name_package")
-                    unit = unit_element.text.strip()
-                except:
-                    unit_match = re.search(r'(\d+[.,]?\d*\s*(?:кг|г|л|мл|шт|мг|таб|пач|уп|упак))', name, re.IGNORECASE)
-                    if unit_match:
-                        unit = unit_match.group(1)
-
-                if not unit:
-                    unit = "1000г"
-
-                price = None
-                price_patterns = [
-                    r'(\d+[.,]\d+)\s*₽',
-                    r'(\d+)\s*₽',
-                ]
-
-                card_text = card.text
-                for pattern in price_patterns:
-                    match = re.search(pattern, card_text, re.IGNORECASE)
-                    if match:
-                        price = match.group(1)
-                        break
-
-                if not price:
-                    price_selectors = [
-                        "span.main-price",
-                        ".product-price",
-                        ".price-and-buttons",
-                        "[data-loyalty-price]"
-                    ]
-                    for selector in price_selectors:
-                        try:
-                            price_elem = card.find_element(By.CSS_SELECTOR, selector)
-                            price_text = price_elem.text.strip()
-                            price_match = re.search(r'(\d+[.,]\d+|\d+)', price_text)
-                            if price_match:
-                                price = price_match.group(0)
-                                break
-                        except:
-                            continue
-
-                if name:
-                    results.append({
-                        "name": name,
-                        "price": price,
-                        "unit": unit
-                    })
-
-            except Exception as e:
                 continue
 
-        print(f"Обработано: {len(results)} товаров")
-        return results
 
-    except Exception as e:
-        print(f"Ошибка при поиске: {str(e)}")
+def search_product(driver, product_name):
+    """Поиск товара на сайте Ленты"""
+    clean_query = product_name
+    encoded_query = quote(clean_query, safe='')
+    search_url = f"https://lenta.com/search/{encoded_query}/"
+
+    driver.get(search_url)
+    time.sleep(2)
+    close_popups(driver)
+
+    try:
+        WebDriverWait(driver, 5).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "lu-product-card"))
+        )
+    except:
         return []
+
+    cards = driver.find_elements(By.CSS_SELECTOR, "lu-product-card")
+    results = []
+
+    for card in cards[:15]:
+        try:
+            name_elem = card.find_element(By.CSS_SELECTOR, "span.card-name_content")
+            name = name_elem.text.strip()
+
+            # Единица измерения
+            unit = None
+            try:
+                unit_elem = card.find_element(By.CSS_SELECTOR, "p.card-name_package")
+                unit = unit_elem.text.strip()
+            except:
+                match = re.search(r'(\d+[.,]?\d*\s*(?:кг|г|л|мл|шт|мг|таб|пач|уп|упак))', name, re.IGNORECASE)
+                unit = match.group(1) if match else "1000г"
+
+            price = None
+
+            # Для весовых товаров ищем <span class="price">139.99 ₽ за 1 кг</span>
+            if any(wp.lower() in product_name.lower() for wp in WEIGHT_PRODUCTS):
+                try:
+                    price_elem = card.find_element(By.CSS_SELECTOR, "span.price")
+                    price_text = price_elem.text.strip()
+                    price_match = re.search(r'(\d+[.,]?\d+)', price_text)
+                    if price_match:
+                        price = price_match.group(1)
+                        # Если указано "за 1 кг", оставляем единицу
+                        unit_match = re.search(r'за\s*(\d+[.,]?\s*(?:кг|г))', price_text, re.IGNORECASE)
+                        if unit_match:
+                            unit = unit_match.group(1)
+                except:
+                    pass
+
+            # Фоллбек для обычных товаров
+            if not price:
+                try:
+                    price_elem = card.find_element(By.CSS_SELECTOR, "span.main-price")
+                    price_text = price_elem.text.strip()
+                    price_match = re.search(r'(\d+[.,]\d+|\d+)', price_text)
+                    if price_match:
+                        price = price_match.group(0)
+                except:
+                    price_patterns = [r'(\d+[.,]\d+)\s*₽', r'(\d+)\s*₽']
+                    for pat in price_patterns:
+                        m = re.search(pat, card.text)
+                        if m:
+                            price = m.group(1)
+                            break
+
+            results.append({"name": name, "unit": unit, "price": price})
+        except:
+            continue
+
+    return results
 
 
 def clean_price(price_text):
     if not price_text:
         return None
-
     try:
-        cleaned = re.sub(r'[^\d.,]', '', str(price_text))
-        cleaned = cleaned.replace(',', '.')
-        if '.' in cleaned:
-            parts = cleaned.split('.')
-            if len(parts) > 1:
-                cleaned = parts[0] + '.' + ''.join(parts[1:])
-
-        if cleaned and cleaned.replace('.', '').isdigit():
-            return float(cleaned)
-        return None
+        cleaned = re.sub(r'[^\d.,]', '', str(price_text)).replace(',', '.')
+        return float(cleaned)
     except:
         return None
 
@@ -196,28 +157,18 @@ def clean_price(price_text):
 def find_best_match(product_name, items):
     if not items:
         return None, 0
-
-    best_match = None
-    best_score = 0
-
+    best_match, best_score = None, 0
     for item in items:
-        if not item['name']:
-            continue
-
         scores = [
             fuzz.token_set_ratio(product_name.lower(), item['name'].lower()),
-            fuzz.partial_ratio(product_name.lower(), item['name'].lower()),
+            fuzz.partial_ratio(product_name.lower(), item['name'].lower())
         ]
-
-        current_score = max(scores)
-
+        score = max(scores)
         if item['price']:
-            current_score += 10
-
-        if current_score > best_score:
-            best_score = current_score
+            score += 10
+        if score > best_score:
+            best_score = score
             best_match = item
-
     return best_match, best_score
 
 
@@ -225,86 +176,48 @@ def main():
     results_final = []
     today = datetime.today().strftime("%Y-%m-%d")
 
-    print("Запуск парсера Ленты...")
-    print(f"Всего товаров: {len(products)}")
-
     driver = create_driver()
 
     try:
-        for i, product in enumerate(products, 1):
-            print(f"\n==================================================")
-            print(f"Поиск {i}/{len(products)}: {product}")
-            print(f"==================================================")
+        for product in products:
+            print(f"\nИщем: {product}")
+            items = search_product(driver, product)
+            best_match, score = find_best_match(product, items)
 
-            start_time = time.time()
-            items = search_product_fast(driver, product)
-            search_time = time.time() - start_time
+            # Убираем слово "сезонные" из имени для сохранения
+            save_name = re.sub(r'\s*сезонные', '', product, flags=re.IGNORECASE)
 
-            if items:
-                print(f"Найдено: {len(items)} товаров (время: {search_time:.1f}с)")
-
-                for j, item in enumerate(items[:3], 1):
-                    price_display = item['price'] if item['price'] else 'нет цены'
-                    print(f"   {j}. {item['name']} - {price_display} - {item['unit']}")
-
-                best_match, score = find_best_match(product, items)
-
-                if best_match and score >= 50:
-                    clean_price_value = clean_price(best_match['price'])
-
-                    print(f"ВЫБРАНО: {best_match['name']}")
-                    print(f"   Цена: {clean_price_value}")
-                    print(f"   Unit: {best_match['unit']}")
-                    print(f"   Схожесть: {score:.1f}%")
-
-                    results_final.append({
-                        "store": "Лента",
-                        "product": product,
-                        "unit": best_match["unit"],
-                        "price": clean_price_value,
-                        "date": today
-                    })
-                else:
-                    print(f"Нет подходящего товара (схожесть: {score:.1f}%)")
-                    results_final.append({
-                        "store": "Лента",
-                        "product": product,
-                        "unit": "1000г",
-                        "price": None,
-                        "date": today
-                    })
-            else:
-                print("Товары не найдены")
+            if best_match and score >= 50:
                 results_final.append({
                     "store": "Лента",
-                    "product": product,
+                    "product": save_name,
+                    "unit": best_match["unit"],
+                    "price": clean_price(best_match["price"]),
+                    "date": today
+                })
+                print(f"Выбрано: {best_match['name']} - {best_match['price']} - {best_match['unit']} (score: {score:.1f})")
+            else:
+                results_final.append({
+                    "store": "Лента",
+                    "product": save_name,
                     "unit": "1000г",
                     "price": None,
                     "date": today
                 })
+                print(f"Не найдено: {product} (score: {score:.1f})")
 
-            if i < len(products):
-                time.sleep(1)
-
-    except Exception as e:
-        print(f"Критическая ошибка: {str(e)}")
+            time.sleep(1)
 
     finally:
-        print("\nЗакрываем браузер...")
         driver.quit()
 
-    print(f"\n==================================================")
-    print("Сохраняем результаты...")
-
+    # Сохранение CSV
     df = pd.DataFrame(results_final)
-    df.to_csv("lenta_prices.csv", index=False, encoding="utf-8-sig")
-
-    found_count = len([x for x in results_final if x['price'] is not None])
-    print(f"РЕЗУЛЬТАТЫ:")
-    print(f"   Найдено: {found_count}/{len(products)}")
-    print(f"   Не найдено: {len(products) - found_count}")
-    print(f"   Файл: lenta_prices.csv")
-    print("Готово!")
+    BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../data/raw"))
+    os.makedirs(BASE_DIR, exist_ok=True)
+    file_path = os.path.join(BASE_DIR, "lenta_prices.csv")
+    df.to_csv(file_path, index=False, encoding="utf-8-sig")
+    print(f"\nСохранено {len(df)} записей в {file_path}")
 
 
 if __name__ == "__main__":

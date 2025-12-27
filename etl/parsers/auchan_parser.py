@@ -8,24 +8,24 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from rapidfuzz import fuzz
 import undetected_chromedriver as uc
-
+import os
 # -------------------------------------------------------------
 products = [
     "Яйцо куриное Окское отборное С0 10шт",
     "Батон Коломенский Нарезной 200г",
     "Молоко Простоквашино отборное пастеризованное 3.4-4.5%",
-    "Сахар песок белый 1кг",
+    "Сахар кусковой белый 1кг",
     "Соль пищевая 1кг",
-    "Крупа гречневая ядрица 900г",
+    "Крупа гречневая Мистраль 900г",
     "Масло Олейна подсолнечное 1л",
     "Масло Брест-Литовск сливочное 82,5% 180г",
-    "Бедро куриное Петелинка",
+    "Филе грудки цыпленка Петелинка",
     "Чай Greenfield Golden Ceylon 100г",
-    "Картофель",
+    "Картофель красный, вес",
     "Лук репчатый",
-    "Морковь",
+    "Социальный товар Морковь",
     "Капуста белокочанная",
-    "Яблоки"
+    "Яблоки сезонные"
 ]
 
 results = []
@@ -70,11 +70,12 @@ def extract_price(card, driver):
 
     return None
 
-# -------------------------------------------------------------
 options = uc.ChromeOptions()
 options.add_argument("--start-maximized")
 options.add_argument("--disable-blink-features=AutomationControlled")
-driver = uc.Chrome(options=options)
+options.add_argument("--disable-infobars")
+
+driver = uc.Chrome(version_main=None, options=options)
 
 driver.get("https://www.auchan.ru")
 time.sleep(3)
@@ -106,13 +107,11 @@ for product in products:
 
         time.sleep(1.5)  # даём пересобрать DOM
 
-        # -------- 1️⃣ Находим ВСЕ карточки — имена используем только как TEXT --------
         cards = driver.find_elements(By.CSS_SELECTOR, "div.digi-product, div.product-card")
 
         best_index = None
         best_score = -1
 
-        # -------- 2️⃣ оцениваем SCORE по названию --------
         for idx in range(len(cards)):
 
             # каждый раз получаем карточку заново → нет stale element
@@ -140,20 +139,16 @@ for product in products:
                 best_score = score
                 best_index = idx
 
-        # -------- 3️⃣ если нет совпадений --------
         if best_index is None or best_score < 25:
-            print(f"⚠️ Ашан — {product} — товар не найден (score={best_score})")
+            print(f"Ашан — {product} — товар не найден (score={best_score})")
             results.append({"store": "Ашан", "product": product, "unit": unit_default, "price": None, "date": today})
             continue
 
-        # -------- 4️⃣ снова получаем ЛУЧШУЮ карточку — заново! --------
         cards = driver.find_elements(By.CSS_SELECTOR, "div.digi-product, div.product-card")
         best_card = cards[best_index]
 
-        # -------- 5️⃣ цена --------
         price = extract_price(best_card, driver)
 
-        # -------- 6️⃣ единица измерения --------
         card_text = best_card.text
         match_unit = re.search(r"(\d+\s?(г|кг|мл|л|шт))", card_text)
         unit_site = match_unit.group(1) if match_unit else unit_default  # если нет на сайте, используем unit_default
@@ -166,10 +161,10 @@ for product in products:
             "date": today
         })
 
-        print(f"✅ Ашан — {product} — {price} — {unit_site} (score={best_score})")
+        print(f"Ашан — {product} — {price} — {unit_site} (score={best_score})")
 
     except Exception as e:
-        print(f"❌ Ошибка при обработке '{product}': {e}")
+        print(f"Ошибка при обработке '{product}': {e}")
         results.append({"store": "Ашан", "product": product, "unit": unit_default, "price": None, "date": today})
 
     time.sleep(2)
@@ -178,5 +173,8 @@ driver.quit()
 
 # SAVE
 df = pd.DataFrame(results)
-df.to_csv("auchan_prices.csv", index=False, encoding="utf-8-sig")
-print("\n💾 Сохранено!")
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../data/raw"))
+os.makedirs(BASE_DIR, exist_ok=True)
+file_path = os.path.join(BASE_DIR, "auchan_prices.csv")
+df.to_csv(file_path, index=False, encoding="utf-8-sig")
+print(f"Сохранено {len(df)} записей в {file_path}")
