@@ -15,3 +15,6 @@ openpyxl==3.1.2
 
 # Для планирования задач (если нужно)
 schedule==1.2.0
+beautifulsoup4
+lxml
+boto3
