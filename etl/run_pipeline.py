@@ -2,6 +2,8 @@ import os
 import subprocess
 from datetime import datetime
 
+from etl.upload_to_gdrive import upload
+
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PARSERS_DIR = os.path.join(REPO_ROOT, "etl", "parsers")  # <-- внутри etl
 PYTHON_EXEC = "python3"
@@ -26,3 +28,4 @@ if __name__ == "__main__":
     print(f"Запуск ETL pipeline: {datetime.now()}")
     run_all_parsers()
     print(f"ETL pipeline завершён: {datetime.now()}")
+    upload()

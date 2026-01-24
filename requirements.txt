@@ -18,3 +18,7 @@ schedule==1.2.0
 beautifulsoup4
 lxml
 boto3
+google-api-python-client
+google-auth
+google-auth-httplib2
+google-auth-oauthlib

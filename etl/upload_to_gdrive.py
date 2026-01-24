@@ -1,46 +1,35 @@
 import os
-import json
-from pathlib import Path
-from google.oauth2.service_account import Credentials
+from datetime import datetime
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-DATA_FILE = BASE_DIR / "data" / "processed" / "clean_prices.csv"
-SCOPES = ["https://www.googleapis.com/auth/drive.file"]
-FOLDER_ID = "PASTE_YOUR_FOLDER_ID"
-
-def get_service():
-    if "GDRIVE_KEY_JSON" in os.environ:
-        info = json.loads(os.environ["GDRIVE_KEY_JSON"])
-        creds = Credentials.from_service_account_info(info, scopes=SCOPES)
-    else:
-        creds = Credentials.from_service_account_file(
-            BASE_DIR / "etl" / "gdrive_key.json",
-            scopes=SCOPES
-        )
-    return build("drive", "v3", credentials=creds)
+SCOPES = ['https://www.googleapis.com/auth/drive.file']
+LOCAL_FILE = os.path.join("data", "processed", "clean_prices.csv")
+FOLDER_ID = "16ytw-ZV05jveJksJjY4bwfuoK_OxXiAa"
 
 def upload():
-    if not DATA_FILE.exists():
-        raise FileNotFoundError(DATA_FILE)
+    flow = InstalledAppFlow.from_client_secrets_file('etl/client_secret.json', SCOPES)
+    creds = flow.run_local_server(port=0)
+    service = build('drive', 'v3', credentials=creds)
 
-    service = get_service()
+    date_str = datetime.now().strftime("%Y-%m-%d")
+    filename = f"clean_prices_{date_str}.csv"
 
-    media = MediaFileUpload(
-        DATA_FILE,
-        mimetype="text/csv",
-        resumable=True
-    )
+    file_metadata = {
+        'name': filename,
+        'parents': [FOLDER_ID]
+    }
 
-    service.files().create(
-        body={
-            "name": DATA_FILE.name,
-            "parents": [FOLDER_ID]
-        },
+    media = MediaFileUpload(LOCAL_FILE, mimetype='text/csv')
+    file = service.files().create(
+        body=file_metadata,
         media_body=media,
-        fields="id"
+        fields='id'
     ).execute()
+
+    print(f"{filename} uploaded to Google Drive folder {FOLDER_ID}")
 
 if __name__ == "__main__":
     upload()
