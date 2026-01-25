@@ -38,6 +38,11 @@ jobs:
             pandas==2.1.4 numpy==1.26.2 chromedriver-autoinstaller==0.4.0 \
             google-api-python-client google-auth google-auth-httplib2 google-auth-oauthlib
 
+      - name: Prepare Google Drive credentials
+        run: |
+          mkdir -p etl
+          echo "${{ secrets.GDRIVE_CLIENT_SECRET }}" > etl/client_secret.json
+
       - name: Run ETL Pipeline
         run: |
           # Добавляем корень репозитория в PYTHONPATH, чтобы Python видел пакет etl
