@@ -24,7 +24,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y wget unzip xvfb libxi6 libgconf-2-4 libnss3 libxss1 \
             libatk-bridge2.0-0 libgtk-3-0 fonts-liberation libasound2-data \
-            libasound2-plugins alsa-utils  # <-- заменили libasound2 на рабочие пакеты
+            libasound2-plugins alsa-utils
 
           # Устанавливаем Chrome
           wget -q -O /tmp/chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
@@ -40,8 +40,13 @@ jobs:
 
       - name: Run ETL Pipeline
         run: |
-          # Запускаем с виртуальным дисплеем
+          # Добавляем корень репозитория в PYTHONPATH, чтобы Python видел пакет etl
+          export PYTHONPATH=$PYTHONPATH:$(pwd)
+
+          # Запускаем виртуальный дисплей для Selenium
           Xvfb :99 -screen 0 1920x1080x24 &
           export DISPLAY=:99
           sleep 3
+
+          # Запуск ETL pipeline
           python etl/run_pipeline.py
