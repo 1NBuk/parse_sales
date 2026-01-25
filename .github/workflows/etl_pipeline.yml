@@ -55,3 +55,7 @@ jobs:
 
           # Запуск ETL pipeline
           python etl/run_pipeline.py
+      - name: Write GDrive credentials
+        run: |
+          mkdir -p etl
+          echo "${{ secrets.GDRIVE_SERVICE_ACCOUNT_JSON }}" > etl/service_account.json

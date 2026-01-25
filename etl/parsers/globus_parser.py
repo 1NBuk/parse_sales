@@ -76,7 +76,7 @@ def main():
         # Кнопка "Выбрать город"
         # -------------------------------------------------------------
         try:
-            btn = WebDriverWait(driver, 10).until(
+            btn = WebDriverWait(driver, 20).until(
                 EC.element_to_be_clickable((By.CSS_SELECTOR, "span.js-select-town.button-select.see"))
             )
             driver.execute_script("arguments[0].click();", btn)
@@ -96,7 +96,7 @@ def main():
 
             try:
                 # Поиск
-                search_box = WebDriverWait(driver, 15).until(
+                search_box = WebDriverWait(driver, 20).until(
                     EC.presence_of_element_located((By.CSS_SELECTOR, "input.search-form__input.js-search-form__input"))
                 )
                 search_box.clear()
@@ -105,7 +105,7 @@ def main():
                 time.sleep(2)
 
                 # Список результатов
-                links = WebDriverWait(driver, 10).until(
+                links = WebDriverWait(driver, 20).until(
                     EC.presence_of_all_elements_located((By.CSS_SELECTOR, "ul li a"))
                 )
 
@@ -149,7 +149,7 @@ def main():
 
                 # Цена
                 try:
-                    price_main = WebDriverWait(driver, 10).until(
+                    price_main = WebDriverWait(driver, 20).until(
                         EC.presence_of_element_located((By.CSS_SELECTOR, ".catalog-detail__item-price-actual-main"))
                     ).text.strip()
 
