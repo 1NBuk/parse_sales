@@ -2,16 +2,35 @@ import time
 import pandas as pd
 from datetime import datetime
 import re
+import os
+import sys
+
+# Добавляем путь к utils в sys.path
+sys.path.append(os.path.dirname(__file__))
+
+try:
+    from driver_utils import create_driver
+except ImportError:
+    # Альтернативный импорт для запуска из консоли
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "driver_utils",
+        os.path.join(os.path.dirname(__file__), "driver_utils.py")
+    )
+    driver_utils = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(driver_utils)
+    create_driver = driver_utils.create_driver
+
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from rapidfuzz import fuzz
-import undetected_chromedriver as uc
-import os
+
 # -------------------------------------------------------------
 products = [
-    "Яйцо куриное Окское отборное С0 10шт",
+    "Яйцо куриное Окское С1 10шт",
     "Батон Коломенский Нарезной 200г",
     "Молоко Простоквашино отборное пастеризованное 3.4-4.5%",
     "Сахар кусковой белый 1кг",
@@ -31,12 +50,14 @@ products = [
 results = []
 today = datetime.today().strftime("%Y-%m-%d")
 
+
 # -------------------------------------------------------------
 def split_name_unit(product):
     match = re.search(r"(\d+(\.\d+)?\s?(г|кг|мл|л|шт))", product, re.IGNORECASE)
     if match:
         return product.replace(match.group(1), "").strip(), match.group(1)
     return product, ""  # если нет веса, unit_default будет пустым
+
 
 # -------------------------------------------------------------
 def extract_price(card, driver):
@@ -70,111 +91,117 @@ def extract_price(card, driver):
 
     return None
 
-options = uc.ChromeOptions()
-options.add_argument("--start-maximized")
-options.add_argument("--disable-blink-features=AutomationControlled")
-options.add_argument("--disable-infobars")
 
-driver = uc.Chrome(version_main=None, options=options)
-
-driver.get("https://www.auchan.ru")
-time.sleep(3)
-
-# -------------------------------------------------------------
-# MAIN LOOP
-# -------------------------------------------------------------
-for product in products:
-    name_only, unit_default = split_name_unit(product)
-
-    # если unit_default пустой, ставим "1 кг"
-    if not unit_default:
-        unit_default = "1 кг"
+def main():
+    driver = create_driver(use_uc=True)
 
     try:
-        # поиск
-        search_box = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, "input#search"))
-        )
-        search_box.clear()
-        search_box.send_keys(product)
-        search_box.send_keys(Keys.ENTER)
+        driver.get("https://www.auchan.ru")
+        time.sleep(3)
 
-        # загрузка карточек
-        WebDriverWait(driver, 15).until(
-            EC.presence_of_all_elements_located((By.CSS_SELECTOR,
-                                                 "div.digi-product, div.product-card"))
-        )
+        # -------------------------------------------------------------
+        # MAIN LOOP
+        # -------------------------------------------------------------
+        for product in products:
+            name_only, unit_default = split_name_unit(product)
 
-        time.sleep(1.5)  # даём пересобрать DOM
+            # если unit_default пустой, ставим "1 кг"
+            if not unit_default:
+                unit_default = "1 кг"
 
-        cards = driver.find_elements(By.CSS_SELECTOR, "div.digi-product, div.product-card")
+            try:
+                # поиск
+                search_box = WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR, "input#search"))
+                )
+                search_box.clear()
+                search_box.send_keys(product)
+                search_box.send_keys(Keys.ENTER)
 
-        best_index = None
-        best_score = -1
+                # загрузка карточек
+                WebDriverWait(driver, 15).until(
+                    EC.presence_of_all_elements_located((By.CSS_SELECTOR,
+                                                         "div.digi-product, div.product-card"))
+                )
 
-        for idx in range(len(cards)):
+                time.sleep(1.5)  # даём пересобрать DOM
 
-            # каждый раз получаем карточку заново → нет stale element
-            cards = driver.find_elements(By.CSS_SELECTOR, "div.digi-product, div.product-card")
-            card = cards[idx]
+                cards = driver.find_elements(By.CSS_SELECTOR, "div.digi-product, div.product-card")
 
-            title = ""
-            for sel in [
-                "a.digi-product__label",
-                ".digi-product__label",
-                "a.product-card__title",
-            ]:
-                try:
-                    title = card.find_element(By.CSS_SELECTOR, sel).text.strip()
-                    break
-                except:
+                best_index = None
+                best_score = -1
+
+                for idx in range(len(cards)):
+
+                    # каждый раз получаем карточку заново → нет stale element
+                    cards = driver.find_elements(By.CSS_SELECTOR, "div.digi-product, div.product-card")
+                    card = cards[idx]
+
+                    title = ""
+                    for sel in [
+                        "a.digi-product__label",
+                        ".digi-product__label",
+                        "a.product-card__title",
+                    ]:
+                        try:
+                            title = card.find_element(By.CSS_SELECTOR, sel).text.strip()
+                            break
+                        except:
+                            continue
+
+                    if not title:
+                        continue
+
+                    score = fuzz.token_sort_ratio(name_only.lower(), title.lower())
+
+                    if score > best_score:
+                        best_score = score
+                        best_index = idx
+
+                if best_index is None or best_score < 25:
+                    print(f"Ашан — {product} — товар не найден (score={best_score})")
+                    results.append(
+                        {"store": "Ашан", "product": product, "unit": unit_default, "price": None, "date": today})
                     continue
 
-            if not title:
-                continue
+                cards = driver.find_elements(By.CSS_SELECTOR, "div.digi-product, div.product-card")
+                best_card = cards[best_index]
 
-            score = fuzz.token_sort_ratio(name_only.lower(), title.lower())
+                price = extract_price(best_card, driver)
 
-            if score > best_score:
-                best_score = score
-                best_index = idx
+                card_text = best_card.text
+                match_unit = re.search(r"(\d+\s?(г|кг|мл|л|шт))", card_text)
+                unit_site = match_unit.group(
+                    1) if match_unit else unit_default  # если нет на сайте, используем unit_default
 
-        if best_index is None or best_score < 25:
-            print(f"Ашан — {product} — товар не найден (score={best_score})")
-            results.append({"store": "Ашан", "product": product, "unit": unit_default, "price": None, "date": today})
-            continue
+                results.append({
+                    "store": "Ашан",
+                    "product": product,
+                    "unit": unit_site,
+                    "price": price,
+                    "date": today
+                })
 
-        cards = driver.find_elements(By.CSS_SELECTOR, "div.digi-product, div.product-card")
-        best_card = cards[best_index]
+                print(f"Ашан — {product} — {price} — {unit_site} (score={best_score})")
 
-        price = extract_price(best_card, driver)
+            except Exception as e:
+                print(f"Ошибка при обработке '{product}': {e}")
+                results.append(
+                    {"store": "Ашан", "product": product, "unit": unit_default, "price": None, "date": today})
 
-        card_text = best_card.text
-        match_unit = re.search(r"(\d+\s?(г|кг|мл|л|шт))", card_text)
-        unit_site = match_unit.group(1) if match_unit else unit_default  # если нет на сайте, используем unit_default
+            time.sleep(2)
 
-        results.append({
-            "store": "Ашан",
-            "product": product,
-            "unit": unit_site,
-            "price": price,
-            "date": today
-        })
+    finally:
+        driver.quit()
 
-        print(f"Ашан — {product} — {price} — {unit_site} (score={best_score})")
+    # SAVE
+    df = pd.DataFrame(results)
+    BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../data/raw"))
+    os.makedirs(BASE_DIR, exist_ok=True)
+    file_path = os.path.join(BASE_DIR, "auchan_prices.csv")
+    df.to_csv(file_path, index=False, encoding="utf-8-sig")
+    print(f"Сохранено {len(df)} записей в {file_path}")
 
-    except Exception as e:
-        print(f"Ошибка при обработке '{product}': {e}")
-        results.append({"store": "Ашан", "product": product, "unit": unit_default, "price": None, "date": today})
 
-    time.sleep(2)
-
-driver.quit()
-
-# SAVE
-df = pd.DataFrame(results)
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../data/raw"))
-os.makedirs(BASE_DIR, exist_ok=True)
-file_path = os.path.join(BASE_DIR, "auchan_prices.csv")
-df.to_csv(file_path, index=False, encoding="utf-8-sig")
-print(f"Сохранено {len(df)} записей в {file_path}")
+if __name__ == "__main__":
+    main()

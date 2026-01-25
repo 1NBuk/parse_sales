@@ -5,14 +5,30 @@ from datetime import datetime
 from rapidfuzz import fuzz
 from urllib.parse import quote
 import os
-import undetected_chromedriver as uc
+import sys
+
+# Добавляем путь к utils в sys.path
+sys.path.append(os.path.dirname(__file__))
+
+try:
+    from driver_utils import create_driver
+except ImportError:
+    # Альтернативный импорт для запуска из консоли
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "driver_utils",
+        os.path.join(os.path.dirname(__file__), "driver_utils.py")
+    )
+    driver_utils = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(driver_utils)
+    create_driver = driver_utils.create_driver
+
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-
 products = [
-    "Яйцо куриное Окское С0 10шт",
+    "Яйцо куриное Окское С1 10шт",
     "Батон Коломенский Нарезной 200г",
     "Молоко Простоквашино отборное пастеризованное",
     "Сахар кусковой белый 1кг",
@@ -28,6 +44,7 @@ products = [
     "Капуста белокочанная",
     "Яблоки сезонные"
 ]
+
 WEIGHT_PRODUCTS = [
     "Картофель",
     "Лук репчатый",
@@ -35,23 +52,6 @@ WEIGHT_PRODUCTS = [
     "Капуста белокочанная",
     "Яблоки сезонные"
 ]
-
-def create_driver():
-    """Создание Chrome с автоподбором драйвера под текущий браузер"""
-    options = uc.ChromeOptions()
-    options.add_argument("--start-maximized")
-    options.add_argument("--disable-blink-features=AutomationControlled")
-    options.add_argument("--disable-infobars")
-    prefs = {
-        "profile.default_content_setting_values.geolocation": 2,
-        "profile.default_content_setting_values.notifications": 2
-    }
-    options.add_experimental_option("prefs", prefs)
-
-    # Подбираем драйвер под версию Chrome 142
-    driver = uc.Chrome(version_main=142, options=options)
-    return driver
-
 
 def close_popups(driver):
     """Закрытие всплывающих окон"""
@@ -68,7 +68,6 @@ def close_popups(driver):
                 driver.execute_script("arguments[0].click();", el)
             except:
                 continue
-
 
 def search_product(driver, product_name):
     """Поиск товара на сайте Ленты"""
@@ -143,7 +142,6 @@ def search_product(driver, product_name):
 
     return results
 
-
 def clean_price(price_text):
     if not price_text:
         return None
@@ -152,7 +150,6 @@ def clean_price(price_text):
         return float(cleaned)
     except:
         return None
-
 
 def find_best_match(product_name, items):
     if not items:
@@ -171,12 +168,11 @@ def find_best_match(product_name, items):
             best_match = item
     return best_match, best_score
 
-
 def main():
     results_final = []
     today = datetime.today().strftime("%Y-%m-%d")
 
-    driver = create_driver()
+    driver = create_driver(use_uc=True)
 
     try:
         for product in products:
@@ -218,7 +214,6 @@ def main():
     file_path = os.path.join(BASE_DIR, "lenta_prices.csv")
     df.to_csv(file_path, index=False, encoding="utf-8-sig")
     print(f"\nСохранено {len(df)} записей в {file_path}")
-
 
 if __name__ == "__main__":
     main()

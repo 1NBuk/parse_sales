@@ -4,21 +4,36 @@ import re
 import urllib.parse
 import pandas as pd
 from datetime import datetime
-from rapidfuzz import fuzz
 
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
+from dateutil.utils import today
+from rapidfuzz import fuzz
+import sys
+
+# Добавляем путь к utils в sys.path
+sys.path.append(os.path.dirname(__file__))
+
+try:
+    from driver_utils import create_driver
+except ImportError:
+    # Альтернативный импорт для запуска из консоли
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "driver_utils",
+        os.path.join(os.path.dirname(__file__), "driver_utils.py")
+    )
+    driver_utils = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(driver_utils)
+    create_driver = driver_utils.create_driver
+
 from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 # ================= НАСТРОЙКИ =================
 
-CHROMEDRIVER_PATH = r"C:\Users\User\Tools\chromedriver.exe"
-
 PRODUCTS = [
-    "Яйцо куриное Окское отборное С0 10шт",
+    "Яйцо куриное Окское отборное С1 10шт",
     "Батон Коломенский Нарезной 200г",
     "Молоко Простоквашино отборное пастеризованное 3.4-4.5%",
     "Сахар кусковой белый 1кг",
@@ -39,6 +54,7 @@ BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../data/r
 os.makedirs(BASE_DIR, exist_ok=True)
 OUTPUT_FILE = os.path.join(BASE_DIR, "pyaterochka_prices.csv")
 
+
 # ================= ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =================
 
 def split_name_unit(product: str):
@@ -50,15 +66,6 @@ def split_name_unit(product: str):
         unit = ""
         name = product
     return name, unit
-
-
-def setup_driver():
-    options = Options()
-    options.add_argument("--start-maximized")
-    options.add_argument("--disable-blink-features=AutomationControlled")
-    service = Service(CHROMEDRIVER_PATH)
-    driver = webdriver.Chrome(service=service, options=options)
-    return driver
 
 
 def warmup_site(driver):
@@ -150,21 +157,28 @@ def parse_product(driver, product, is_first=False):
 
 # ================= ОСНОВНОЙ КОД =================
 
-today = datetime.today().strftime("%Y-%m-%d")
-results = []
+def main():
+    today = datetime.today().strftime("%Y-%m-%d")
+    results = []
 
-driver = setup_driver()
-time.sleep(5)
-warmup_site(driver)
+    driver = create_driver(use_uc=True)
+    time.sleep(5)
+    warmup_site(driver)
 
-for idx, product in enumerate(PRODUCTS):
-    result = parse_product(driver, product, is_first=(idx == 0))
-    results.append(result)
-    time.sleep(1)
+    try:
+        for idx, product in enumerate(PRODUCTS):
+            result = parse_product(driver, product, is_first=(idx == 0))
+            results.append(result)
+            time.sleep(1)
 
-driver.quit()
+    finally:
+        driver.quit()
 
-df = pd.DataFrame(results)
-df.to_csv(OUTPUT_FILE, index=False, encoding="utf-8-sig")
+    df = pd.DataFrame(results)
+    df.to_csv(OUTPUT_FILE, index=False, encoding="utf-8-sig")
 
-print(f"\nСохранено {len(df)} записей в {OUTPUT_FILE}")
+    print(f"\nСохранено {len(df)} записей в {OUTPUT_FILE}")
+
+
+if __name__ == "__main__":
+    main()
