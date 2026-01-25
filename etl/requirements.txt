@@ -1,0 +1,24 @@
+# Работа с веб-браузером
+selenium==4.15.0
+
+# Быстрое сравнение строк для fuzzy search
+rapidfuzz==2.15.1
+
+# Работа с таблицами и CSV
+pandas==2.1.1
+
+# HTTP-запросы
+requests==2.31.0
+
+# Для работы с Excel (если понадобится)
+openpyxl==3.1.2
+
+# Для планирования задач (если нужно)
+schedule==1.2.0
+beautifulsoup4
+lxml
+boto3
+google-api-python-client
+google-auth
+google-auth-httplib2
+google-auth-oauthlib
