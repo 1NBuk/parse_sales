@@ -3,12 +3,12 @@ name: Daily ETL Pipeline
 on:
   schedule:
     # 14:00 МСК = 11:00 UTC
-    - cron: "0 11 * * *"
+    - cron: "0 14 * * *"
   workflow_dispatch:
 
 jobs:
   run_pipeline:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Checkout repository
@@ -19,28 +19,29 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install Chrome and ChromeDriver
-        uses: browser-actions/setup-chrome@v1.5.0
-        with:
-          chrome-version: 'stable'
-          install-chromedriver: true
-
-      - name: Install system dependencies
+      - name: Install Chrome and dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y xvfb libxi6 libnss3 libxss1 libatk-bridge2.0-0 libgtk-3-0 fonts-liberation libasound2 libgbm1
+          sudo apt-get install -y wget unzip xvfb libxi6 libgconf-2-4 libnss3 libxss1 \
+            libatk-bridge2.0-0 libgtk-3-0 fonts-liberation libasound2-data \
+            libasound2-plugins alsa-utils  # <-- заменили libasound2 на рабочие пакеты
+
+          # Устанавливаем Chrome
+          wget -q -O /tmp/chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          sudo apt-get install -y /tmp/chrome.deb
+          rm /tmp/chrome.deb
 
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install selenium==4.15.2 undetected-chromedriver==3.5.3 rapidfuzz==3.6.1 pandas==2.1.4 numpy==1.26.2
-          pip install google-api-python-client google-auth google-auth-httplib2 google-auth-oauthlib
+          pip install selenium==4.15.2 undetected-chromedriver==3.5.3 rapidfuzz==3.6.1 \
+            pandas==2.1.4 numpy==1.26.2 chromedriver-autoinstaller==0.4.0 \
+            google-api-python-client google-auth google-auth-httplib2 google-auth-oauthlib
 
       - name: Run ETL Pipeline
         run: |
           # Запускаем с виртуальным дисплеем
           Xvfb :99 -screen 0 1920x1080x24 &
           export DISPLAY=:99
-          # Даем Xvfb время запуститься
           sleep 3
           python etl/run_pipeline.py
