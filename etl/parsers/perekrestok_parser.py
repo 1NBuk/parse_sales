@@ -1,20 +1,20 @@
 import time
 import pandas as pd
-import re
-import urllib.parse
 from datetime import datetime
+import re
 import os
 import sys
+import urllib.parse
 
-# Добавляем путь к utils в sys.path
+# ----------------------
+# driver_utils
+# ----------------------
 sys.path.append(os.path.dirname(__file__))
 
 try:
     from driver_utils import create_driver
 except ImportError:
-    # Альтернативный импорт для запуска из консоли
     import importlib.util
-
     spec = importlib.util.spec_from_file_location(
         "driver_utils",
         os.path.join(os.path.dirname(__file__), "driver_utils.py")
@@ -28,8 +28,9 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from rapidfuzz import fuzz
 
+# ----------------------
 products = [
-    "Яйцо куриное Окское отборное С1 10шт",
+    "Яйцо куриное Окское С1 10шт",
     "Батон Коломенский Нарезной 200г",
     "Молоко Простоквашино отборное пастеризованное 3.4-4.5%",
     "Сахар кусковой белый 1кг",
@@ -38,7 +39,7 @@ products = [
     "Масло Олейна подсолнечное 1л",
     "Масло Брест-Литовск сливочное 82,5% 180г",
     "Филе грудки цыпленка Петелинка",
-    "Чай Greenfield Kenyan Sunrise чёрный байховый 100г",
+    "Чай Greenfield Kenyan Sunrise 100г",
     "Картофель",
     "Лук репчатый",
     "Морковь отечественная",
@@ -46,97 +47,128 @@ products = [
     "Яблоки сезонные"
 ]
 
+results = []
+today = datetime.today().strftime("%Y-%m-%d")
 
+# ----------------------
 def split_name_unit(product):
     match = re.search(r"(\d+(\.\d+)?\s?(г|кг|мл|л|шт))", product, re.IGNORECASE)
     if match:
-        unit = match.group(1)
-        name = product.replace(unit, "").strip()
-    else:
-        unit = ""
-        name = product
-    return name, unit
+        return product.replace(match.group(1), "").strip(), match.group(1)
+    return product, ""  # если нет веса
 
+# ----------------------
+def extract_price(card, driver):
+    selectors = [
+        ".price-new",
+        ".product-card-price__current",
+        ".product-card-price__discount"
+    ]
+    for sel in selectors:
+        try:
+            elem = card.find_element(By.CSS_SELECTOR, sel)
+            raw = elem.text.strip()
+            m = re.search(r"(\d+[.,]?\d*)", raw)
+            if m:
+                return m.group(1).replace(",", ".") + " ₽"
+        except:
+            continue
 
+    # fallback через JS
+    try:
+        js = driver.execute_script("""
+            let el = arguments[0].querySelector(".price-new, .product-card-price__current, .product-card-price__discount");
+            return el ? el.textContent : null;
+        """, card)
+        if js:
+            m = re.search(r"(\d+[.,]?\d*)", js)
+            if m:
+                return m.group(1).replace(",", ".") + " ₽"
+    except:
+        pass
+
+    return None
+
+# ----------------------
 def main():
-    results = []
-    today = datetime.today().strftime("%Y-%m-%d")
-
     driver = create_driver(use_uc=True)
 
     try:
         for product in products:
             name_only, unit_default = split_name_unit(product)
+            if not unit_default:
+                unit_default = "1 кг"
+
             encoded_query = urllib.parse.quote(name_only)
             url = f"https://www.perekrestok.ru/cat/search?search={encoded_query}"
-            driver.get(url)
 
             try:
-                cards = WebDriverWait(driver, 10).until(
+                driver.get(url)
+                WebDriverWait(driver, 15).until(
                     EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".product-card"))
                 )
+                time.sleep(1)
 
-                selected_card = None
-                max_score = 0
-                price = None
-                unit_from_site = unit_default or "1000 гр"
+                cards = driver.find_elements(By.CSS_SELECTOR, ".product-card")
 
-                # Проходим по всем карточкам и выбираем по максимальному score
-                for card in cards:
+                best_index = None
+                best_score = -1
+
+                for idx in range(len(cards)):
+                    # всегда берём свежий элемент, чтобы избежать stale
+                    cards = driver.find_elements(By.CSS_SELECTOR, ".product-card")
+                    card = cards[idx]
+
+                    title = ""
                     try:
                         title_elem = card.find_element(By.CSS_SELECTOR, ".product-card__title")
-                        title_text = title_elem.text.strip().lower()
-                        score = fuzz.token_sort_ratio(name_only.lower(), title_text)
-
-                        if score > max_score:
-                            max_score = score
-                            selected_card = card
+                        title = title_elem.text.strip()
                     except:
                         continue
 
-                if selected_card and max_score > 50:  # фильтр по минимальному сходству
-                    # Получаем цену
-                    for selector in [".price-new", ".product-card-price__current", ".product-card-price__discount"]:
-                        try:
-                            elem = selected_card.find_element(By.CSS_SELECTOR, selector)
-                            text = elem.text.strip()
-                            if text:
-                                price = text.replace("Цена", "").strip()
-                                break
-                        except:
-                            continue
+                    score = fuzz.token_sort_ratio(name_only.lower(), title.lower())
+                    if score > best_score:
+                        best_score = score
+                        best_index = idx
 
-                    # Получаем unit
-                    try:
-                        unit_elem = selected_card.find_element(By.CSS_SELECTOR, ".product-card__size")
-                        if unit_elem.text.strip():
-                            unit_from_site = unit_elem.text.strip()
-                    except:
-                        pass
+                if best_index is None or best_score < 50:
+                    print(f"Перекресток — {name_only} — товар не найден (score={best_score})")
+                    results.append({
+                        "store": "Перекресток",
+                        "product": name_only,
+                        "unit": unit_default,
+                        "price": None,
+                        "date": today
+                    })
+                    continue
 
-                    if not unit_from_site:
-                        unit_from_site = "1000 гр"
+                # берём лучшую карточку
+                cards = driver.find_elements(By.CSS_SELECTOR, ".product-card")
+                best_card = cards[best_index]
 
-                    print(f"Перекресток — {name_only} — {price} — {unit_from_site} (score: {max_score})")
+                price = extract_price(best_card, driver)
 
-                else:
-                    print(f"Перекресток — {name_only} — товар не найден")
-                    price = None
+                # unit
+                card_text = best_card.text
+                match_unit = re.search(r"(\d+\s?(г|кг|мл|л|шт))", card_text)
+                unit_site = match_unit.group(1) if match_unit else unit_default
 
                 results.append({
                     "store": "Перекресток",
                     "product": name_only,
-                    "unit": unit_from_site,
+                    "unit": unit_site,
                     "price": price,
                     "date": today
                 })
 
-            except:
-                print(f"Перекресток — {name_only} — ошибка при поиске")
+                print(f"Перекресток — {name_only} — {price} — {unit_site} (score={best_score})")
+
+            except Exception as e:
+                print(f"Ошибка при обработке '{name_only}': {e}")
                 results.append({
                     "store": "Перекресток",
                     "product": name_only,
-                    "unit": unit_default or "1000 гр",
+                    "unit": unit_default,
                     "price": None,
                     "date": today
                 })
@@ -146,7 +178,7 @@ def main():
     finally:
         driver.quit()
 
-    # ===== Сохраняем CSV =====
+    # SAVE
     df = pd.DataFrame(results)
     BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../data/raw"))
     os.makedirs(BASE_DIR, exist_ok=True)
@@ -154,6 +186,6 @@ def main():
     df.to_csv(file_path, index=False, encoding="utf-8-sig")
     print(f"Сохранено {len(df)} записей в {file_path}")
 
-
+# ----------------------
 if __name__ == "__main__":
     main()

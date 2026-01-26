@@ -13,7 +13,6 @@ sys.path.append(os.path.dirname(__file__))
 try:
     from driver_utils import create_driver
 except ImportError:
-    # Альтернативный импорт для запуска из консоли
     import importlib.util
     spec = importlib.util.spec_from_file_location(
         "driver_utils",
@@ -27,7 +26,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-products = [
+# ================= НАСТРОЙКИ =================
+PRODUCTS = [
     "Яйцо куриное Окское С1 10шт",
     "Батон Коломенский Нарезной 200г",
     "Молоко Простоквашино отборное пастеризованное",
@@ -53,8 +53,14 @@ WEIGHT_PRODUCTS = [
     "Яблоки сезонные"
 ]
 
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../data/raw"))
+OUTPUT_FILE = os.path.join(BASE_DIR, "lenta_prices.csv")
+os.makedirs(BASE_DIR, exist_ok=True)
+
+# ================= ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =================
+
 def close_popups(driver):
-    """Закрытие всплывающих окон"""
+    """Закрытие всплывающих окон на сайте Ленты"""
     selectors = [
         "button.popup__close",
         "div.flocktory-widget-overlay",
@@ -71,10 +77,8 @@ def close_popups(driver):
 
 def search_product(driver, product_name):
     """Поиск товара на сайте Ленты"""
-    clean_query = product_name
-    encoded_query = quote(clean_query, safe='')
+    encoded_query = quote(product_name, safe='')
     search_url = f"https://lenta.com/search/{encoded_query}/"
-
     driver.get(search_url)
     time.sleep(2)
     close_popups(driver)
@@ -104,8 +108,6 @@ def search_product(driver, product_name):
                 unit = match.group(1) if match else "1000г"
 
             price = None
-
-            # Для весовых товаров ищем <span class="price">139.99 ₽ за 1 кг</span>
             if any(wp.lower() in product_name.lower() for wp in WEIGHT_PRODUCTS):
                 try:
                     price_elem = card.find_element(By.CSS_SELECTOR, "span.price")
@@ -113,14 +115,12 @@ def search_product(driver, product_name):
                     price_match = re.search(r'(\d+[.,]?\d+)', price_text)
                     if price_match:
                         price = price_match.group(1)
-                        # Если указано "за 1 кг", оставляем единицу
                         unit_match = re.search(r'за\s*(\d+[.,]?\s*(?:кг|г))', price_text, re.IGNORECASE)
                         if unit_match:
                             unit = unit_match.group(1)
                 except:
                     pass
 
-            # Фоллбек для обычных товаров
             if not price:
                 try:
                     price_elem = card.find_element(By.CSS_SELECTOR, "span.main-price")
@@ -129,8 +129,7 @@ def search_product(driver, product_name):
                     if price_match:
                         price = price_match.group(0)
                 except:
-                    price_patterns = [r'(\d+[.,]\d+)\s*₽', r'(\d+)\s*₽']
-                    for pat in price_patterns:
+                    for pat in [r'(\d+[.,]\d+)\s*₽', r'(\d+)\s*₽']:
                         m = re.search(pat, card.text)
                         if m:
                             price = m.group(1)
@@ -143,6 +142,7 @@ def search_product(driver, product_name):
     return results
 
 def clean_price(price_text):
+    """Конвертация цены в число"""
     if not price_text:
         return None
     try:
@@ -152,6 +152,7 @@ def clean_price(price_text):
         return None
 
 def find_best_match(product_name, items):
+    """Выбор лучшего совпадения с помощью RapidFuzz"""
     if not items:
         return None, 0
     best_match, best_score = None, 0
@@ -168,19 +169,19 @@ def find_best_match(product_name, items):
             best_match = item
     return best_match, best_score
 
+# ================= ОСНОВНОЙ КОД =================
+
 def main():
     results_final = []
     today = datetime.today().strftime("%Y-%m-%d")
-
     driver = create_driver(use_uc=True)
 
     try:
-        for product in products:
+        for product in PRODUCTS:
             print(f"\nИщем: {product}")
             items = search_product(driver, product)
             best_match, score = find_best_match(product, items)
 
-            # Убираем слово "сезонные" из имени для сохранения
             save_name = re.sub(r'\s*сезонные', '', product, flags=re.IGNORECASE)
 
             if best_match and score >= 50:
@@ -207,13 +208,9 @@ def main():
     finally:
         driver.quit()
 
-    # Сохранение CSV
     df = pd.DataFrame(results_final)
-    BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../data/raw"))
-    os.makedirs(BASE_DIR, exist_ok=True)
-    file_path = os.path.join(BASE_DIR, "lenta_prices.csv")
-    df.to_csv(file_path, index=False, encoding="utf-8-sig")
-    print(f"\nСохранено {len(df)} записей в {file_path}")
+    df.to_csv(OUTPUT_FILE, index=False, encoding="utf-8-sig")
+    print(f"\nСохранено {len(df)} записей в {OUTPUT_FILE}")
 
 if __name__ == "__main__":
     main()

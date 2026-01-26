@@ -1,34 +1,25 @@
 import time
-import pandas as pd
-import urllib.parse
-import re
-from datetime import datetime
-from rapidfuzz import fuzz
 import os
 import sys
+import random
+import re
+import urllib.parse
+from datetime import datetime
 
-# Добавляем путь к utils в sys.path
-sys.path.append(os.path.dirname(__file__))
-
-try:
-    from driver_utils import create_driver
-except ImportError:
-    # Альтернативный импорт для запуска из консоли
-    import importlib.util
-
-    spec = importlib.util.spec_from_file_location(
-        "driver_utils",
-        os.path.join(os.path.dirname(__file__), "driver_utils.py")
-    )
-    driver_utils = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(driver_utils)
-    create_driver = driver_utils.create_driver
-
+import pandas as pd
+from rapidfuzz import fuzz
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException
 
-products = [
+sys.path.append(os.path.dirname(__file__))
+from driver_utils import create_driver
+
+
+# ================= НАСТРОЙКИ =================
+
+PRODUCTS = [
     "Яйцо Окское С1",
     "Батон Коломенский Нарезной",
     "Молоко Простоквашино отборное пастеризованное 3.4-4.5%",
@@ -46,165 +37,186 @@ products = [
     "Яблоки сезонные"
 ]
 
-WEIGHT_PRODUCTS = [
-    "Картофель",
-    "Лук репчатый",
-    "Морковь",
-    "Капуста белокочанная",
-    "Яблоки сезонные"
-]
-
-# Адрес для выбора
-TARGET_ADDRESS = "г Москва, пр-кт Ленинградский, д 29 к 4"
+TARGET_ADDRESS = "Панфилова 2"
 
 
-def normalize_query(name):
-    return re.sub(r"\d+(\.\d+)?\s?(г|кг|мл|л|шт)", "", name, flags=re.IGNORECASE).strip()
+# ================= УТИЛИТЫ =================
+
+def safe_get(driver, url):
+    driver.get(url)
+    WebDriverWait(driver, 20).until(
+        EC.presence_of_element_located((By.TAG_NAME, "body"))
+    )
 
 
-def extract_unit(name):
-    m = re.search(r"(\d+\s?(г|кг|мл|л|шт))", name, re.IGNORECASE)
-    return m.group(1) if m else ""
+def normalize_query(text):
+    return re.sub(r"\d+(\.\d+)?\s?(г|кг|мл|л|шт)", "", text, flags=re.I).strip()
 
+
+def extract_unit(text):
+    m = re.search(r"\d+\s?(г|кг|мл|л|шт)", text, re.I)
+    return m.group(0) if m else ""
+
+
+def scroll_all(driver):
+    last = 0
+    while True:
+        height = driver.execute_script("return document.body.scrollHeight")
+        if height == last:
+            break
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        time.sleep(1.5)
+        last = height
+
+
+# ================= ВЫБОР МАГАЗИНА =================
+
+def open_shop_bar(driver):
+    bar = WebDriverWait(driver, 20).until(
+        EC.element_to_be_clickable(
+            (By.CSS_SELECTOR, "div.pl-shop-select-bar[data-test-id='map-button']")
+        )
+    )
+    driver.execute_script("arguments[0].click();", bar)
+    time.sleep(1.5)
+
+
+def click_choose_store_screen(driver):
+    """Экран 'Выберите магазин' с большой кнопкой"""
+    try:
+        btn = WebDriverWait(driver, 5).until(
+            EC.element_to_be_clickable(
+                (By.XPATH, "//button[.//span[text()='Выберите магазин']]")
+            )
+        )
+        driver.execute_script("arguments[0].click();", btn)
+        time.sleep(1.5)
+    except TimeoutException:
+        pass
+
+
+def input_address_and_select(driver, address):
+    """ГЛАВНОЕ: ввод именно в 'Адрес магазина' + кнопка 'Выбрать'"""
+
+    # поле "Адрес магазина"
+    address_input = WebDriverWait(driver, 20).until(
+        EC.visibility_of_element_located(
+            (By.XPATH, "//input[@placeholder='Адрес магазина']")
+        )
+    )
+
+    address_input.clear()
+    address_input.send_keys(address)
+    time.sleep(2)
+
+    # кнопка "Выбрать" у первого магазина
+    choose_btn = WebDriverWait(driver, 20).until(
+        EC.element_to_be_clickable(
+            (By.XPATH, "//button[.//span[normalize-space()='Выбрать']]")
+        )
+    )
+
+    driver.execute_script("arguments[0].click();", choose_btn)
+    time.sleep(3)
+
+    print(f"[✓] Магазин выбран по адресу: {address}")
+
+
+def ensure_store_selected(driver, address):
+    print("[i] Выбираем магазин")
+    open_shop_bar(driver)
+    click_choose_store_screen(driver)
+    input_address_and_select(driver, address)
+
+
+# ================= ПАРСИНГ =================
+
+def parse_card(card, default_unit):
+    try:
+        title = card.find_element(
+            By.CSS_SELECTOR,
+            ".unit-catalog-product-preview-title"
+        ).text.strip()
+    except:
+        return None
+
+    try:
+        price_text = card.text
+        price = re.search(r"\d+[,.]?\d*", price_text).group(0).replace(".", ",")
+    except:
+        price = None
+
+    unit = extract_unit(title) or default_unit or "1 шт"
+    return title, price, unit
+
+
+# ================= MAIN =================
 
 def main():
     driver = create_driver(use_uc=True)
-
-    results = []
     today = datetime.today().strftime("%Y-%m-%d")
+    results = []
 
     try:
-        # --- Шаг 1: Выбираем адрес ---
-        driver.get("https://magnit.ru/")
-        time.sleep(2)
+        safe_get(driver, "https://magnit.ru/")
+        ensure_store_selected(driver, TARGET_ADDRESS)
 
-        try:
-            # Ждем кнопку "Выбрать" в модальном окне
-            choose_btn = WebDriverWait(driver, 20).until(
-                EC.element_to_be_clickable((By.XPATH, "//span[text()='Выбрать']/ancestor::button"))
-            )
-            choose_btn.click()
-            time.sleep(1)
-
-            # Находим поле ввода адреса
-            address_input = WebDriverWait(driver, 20).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, "input.pl-input-field"))
-            )
-            address_input.clear()
-            address_input.send_keys(TARGET_ADDRESS)
-            time.sleep(2)  # ждем появления подсказок
-
-            # Выбираем нужный адрес из выпадающего списка
-            address_option = WebDriverWait(driver, 20).until(
-                EC.element_to_be_clickable(
-                    (By.XPATH, f"//div[contains(@class,'shop-address') and contains(text(),'{TARGET_ADDRESS}')]"))
-            )
-            address_option.click()
-            time.sleep(1)
-
-            # Нажимаем кнопку "Выбрать" в списке адресов
-            confirm_btn = driver.find_element(By.XPATH, "//button[contains(@class,'pl-yamap__balloon__submit')]")
-            confirm_btn.click()
-            time.sleep(2)
-
-        except Exception as e:
-            print(f"Ошибка при выборе адреса: {e}")
-
-        # --- Шаг 2: Парсим товары ---
-        for product in products:
+        for product in PRODUCTS:
             query = normalize_query(product)
-            unit_default = extract_unit(product)
-            encoded = urllib.parse.quote(query)
-            url = f"https://magnit.ru/search/?term={encoded}"
+            default_unit = extract_unit(product)
 
-            driver.get(url)
+            url = f"https://magnit.ru/search/?term={urllib.parse.quote(query)}"
+            safe_get(driver, url)
             time.sleep(2)
+            scroll_all(driver)
 
-            try:
-                WebDriverWait(driver, 20).until(
-                    EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".unit-catalog-product-preview-text"))
-                )
+            cards = driver.find_elements(
+                By.CSS_SELECTOR,
+                ".unit-catalog-product-preview"
+            )
 
-                cards = driver.find_elements(By.CSS_SELECTOR, ".unit-catalog-product-preview-text")
-                best_card = None
-                best_score = 0
-                best_title = ""
+            best, best_score = None, 0
 
-                for card in cards:
-                    try:
-                        title_el = card.find_element(By.CSS_SELECTOR, ".unit-catalog-product-preview-title")
-                        title = title_el.text.strip()
-                        score = fuzz.token_sort_ratio(query.lower(), title.lower())
-                        if score > best_score:
-                            best_score = score
-                            best_card = card
-                            best_title = title
-                    except:
-                        continue
+            for card in cards:
+                parsed = parse_card(card, default_unit)
+                if not parsed:
+                    continue
 
-                if best_card and best_score >= 60:
-                    card_root = best_card.find_element(By.XPATH,
-                                                       "./ancestor::div[contains(@class,'unit-catalog-product-preview-description')]")
-                    try:
-                        if product in WEIGHT_PRODUCTS:
-                            # цена за 1 кг
-                            weight_el = card_root.find_element(By.CSS_SELECTOR,
-                                                               ".unit-catalog-product-preview-weighted span")
-                            price_text = weight_el.text.strip()
-                        else:
-                            # обычная цена
-                            price_el = card_root.find_element(By.CSS_SELECTOR,
-                                                              ".unit-catalog-product-preview-prices__regular span")
-                            price_text = price_el.text.strip()
+                title, price, unit = parsed
+                score = fuzz.token_sort_ratio(query.lower(), title.lower())
 
-                        # чистим цену
-                        price = re.search(r"(\d+[,.]?\d*)", price_text)
-                        price = price.group(1).replace('.', ',') if price else None
-                    except:
-                        price = None
+                if score > best_score:
+                    best_score = score
+                    best = (title, price, unit)
 
-                    try:
-                        unit_match = re.search(r"(\d+\s?(г|кг|мл|л|шт))", best_title)
-                        unit_from_site = unit_match.group(1) if unit_match else unit_default or "1000 гр"
-                    except:
-                        unit_from_site = unit_default or "1000 гр"
+            if best and best_score >= 55:
+                title, price, unit = best
+                print(f"{product} → {price} ({title})")
+            else:
+                title = price = unit = None
+                print(f"[!] {product} — не найден")
 
-                    results.append({
-                        "store": "Магнит",
-                        "product": product,
-                        "found_name": best_title,
-                        "price": price,
-                        "unit": unit_from_site,
-                        "date": today
-                    })
-                    print(f"{product} → {price} ({best_title})")
+            results.append({
+                "store": "Магнит",
+                "product": product,
+                "found_name": title,
+                "price": price,
+                "unit": unit,
+                "date": today
+            })
 
-                else:
-                    print(f"Не найдено: {product}")
-                    results.append({
-                        "store": "Магнит",
-                        "product": product,
-                        "found_name": None,
-                        "price": None,
-                        "unit": unit_default,
-                        "date": today
-                    })
-
-            except Exception as e:
-                print(f"Ошибка ({product}): {e}")
-
-            time.sleep(1)
+            time.sleep(1 + random.random())
 
     finally:
         driver.quit()
 
-    # --- Сохраняем CSV ---
     df = pd.DataFrame(results)
-    BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../data/raw"))
-    os.makedirs(BASE_DIR, exist_ok=True)
-    file_path = os.path.join(BASE_DIR, "magnit_prices.csv")
-    df.to_csv(file_path, index=False, encoding="utf-8-sig")
-    print(f"Сохранено {len(df)} записей в {file_path}")
+    out_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../data/raw"))
+    os.makedirs(out_dir, exist_ok=True)
+    path = os.path.join(out_dir, "magnit_prices.csv")
+    df.to_csv(path, index=False, encoding="utf-8-sig")
+
+    print(f"[OK] Сохранено: {path}")
 
 
 if __name__ == "__main__":

@@ -4,20 +4,16 @@ import re
 import urllib.parse
 import pandas as pd
 from datetime import datetime
-
-from dateutil.utils import today
 from rapidfuzz import fuzz
 import sys
 
-# Добавляем путь к utils в sys.path
+# Добавляем путь к utils
 sys.path.append(os.path.dirname(__file__))
 
 try:
     from driver_utils import create_driver
 except ImportError:
-    # Альтернативный импорт для запуска из консоли
     import importlib.util
-
     spec = importlib.util.spec_from_file_location(
         "driver_utils",
         os.path.join(os.path.dirname(__file__), "driver_utils.py")
@@ -31,7 +27,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 # ================= НАСТРОЙКИ =================
-
 PRODUCTS = [
     "Яйцо куриное Окское отборное С1 10шт",
     "Батон Коломенский Нарезной 200г",
@@ -43,7 +38,7 @@ PRODUCTS = [
     "Масло Брест-Литовск сливочное 82,5% 180г",
     "Филе грудки цыпленка Петелинка",
     "Чай Greenfield Золотой Цейлон 100г",
-    "Картофель отечественный",
+    "Картофель",
     "Лук репчатый",
     "Морковь",
     "Капуста белокочанная",
@@ -54,27 +49,24 @@ BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../data/r
 os.makedirs(BASE_DIR, exist_ok=True)
 OUTPUT_FILE = os.path.join(BASE_DIR, "pyaterochka_prices.csv")
 
-
 # ================= ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =================
 
 def split_name_unit(product: str):
+    """Разделяем название и единицу товара"""
     match = re.search(r"(\d+(\.\d+)?\s?(г|кг|мл|л|шт))", product, re.IGNORECASE)
     if match:
-        unit = match.group(1)
-        name = product.replace(unit, "").strip()
-    else:
-        unit = ""
-        name = product
-    return name, unit
-
+        return product.replace(match.group(1), "").strip(), match.group(1)
+    return product, ""
 
 def warmup_site(driver):
+    """Загрузка главной страницы для инициализации сессии"""
     driver.get("https://5ka.ru")
     time.sleep(5)
 
-
 def parse_product(driver, product, is_first=False):
+    """Парсинг одного товара на сайте Пятерочки"""
     name_only, unit_default = split_name_unit(product)
+    unit_default = unit_default or "1 кг"
     encoded_query = urllib.parse.quote(product)
     url = f"https://5ka.ru/search/?text={encoded_query}"
 
@@ -92,7 +84,6 @@ def parse_product(driver, product, is_first=False):
             WebDriverWait(driver, 10).until(
                 EC.presence_of_all_elements_located((By.CSS_SELECTOR, "div.css-i9gxme"))
             )
-
             cards = driver.find_elements(By.CSS_SELECTOR, "div.css-i9gxme")
             selected_card = None
             max_score = 0
@@ -114,52 +105,33 @@ def parse_product(driver, product, is_first=False):
             # Цена
             price = None
             try:
-                WebDriverWait(selected_card, 5).until(
-                    lambda x: x.find_elements(By.CSS_SELECTOR, "div.css-1gnr8ln span")
-                )
                 spans = selected_card.find_elements(By.CSS_SELECTOR, "div.css-1gnr8ln span")
                 if len(spans) >= 2:
                     price = f"{spans[0].text.strip()},{spans[1].text.strip()} ₽"
             except:
                 pass
 
-            # Единица измерения
+            # Единица
             try:
-                unit_elem = selected_card.find_element(
-                    By.CSS_SELECTOR, "div.css-p5esxm > p[type='caption']"
-                )
+                unit_elem = selected_card.find_element(By.CSS_SELECTOR, "div.css-p5esxm > p[type='caption']")
                 unit = unit_elem.text.strip() if unit_elem.text.strip() else unit_default
             except:
-                unit = unit_default or "1000 гр"
+                unit = unit_default
 
             print(f"{name_only} — {price} — {unit} (score: {max_score})")
-
-            return {
-                "store": "Пятерочка",
-                "product": product,
-                "unit": unit,
-                "price": price,
-                "date": today
-            }
+            return {"store": "Пятерочка", "product": product, "unit": unit, "price": price, "date": datetime.today().strftime("%Y-%m-%d")}
 
         except:
             continue
 
     print(f"Пятерочка — {name_only} — товар не найден")
-    return {
-        "store": "Пятерочка",
-        "product": product,
-        "unit": unit_default or "1000 гр",
-        "price": None,
-        "date": today
-    }
-
+    return {"store": "Пятерочка", "product": product, "unit": unit_default, "price": None, "date": datetime.today().strftime("%Y-%m-%d")}
 
 # ================= ОСНОВНОЙ КОД =================
 
 def main():
-    today = datetime.today().strftime("%Y-%m-%d")
     results = []
+    today_str = datetime.today().strftime("%Y-%m-%d")
 
     driver = create_driver(use_uc=True)
     time.sleep(5)
@@ -176,9 +148,7 @@ def main():
 
     df = pd.DataFrame(results)
     df.to_csv(OUTPUT_FILE, index=False, encoding="utf-8-sig")
-
     print(f"\nСохранено {len(df)} записей в {OUTPUT_FILE}")
-
 
 if __name__ == "__main__":
     main()
