@@ -10,8 +10,7 @@ PYTHON_EXEC = "python3"
 
 
 def run_all_parsers():
-    if not os.path.exists(PARSERS_DIR):
-        raise FileNotFoundError(f"Папка с парсерами не найдена: {PARSERS_DIR}")
+    errors = []
 
     parser_files = sorted(
         f for f in os.listdir(PARSERS_DIR)
@@ -33,8 +32,12 @@ def run_all_parsers():
         print(result.stdout)
 
         if result.returncode != 0:
-            print(f"Ошибка при запуске {parser}:")
+            print(f"⚠ Ошибка в {parser}:")
             print(result.stderr)
+            errors.append(parser)
+
+    if errors:
+        print("\nПарсеры с ошибками:", ", ".join(errors))
 
 
 if __name__ == "__main__":

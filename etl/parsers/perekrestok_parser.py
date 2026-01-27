@@ -104,22 +104,16 @@ def main():
 
             try:
                 driver.get(url)
-                WebDriverWait(driver, 15).until(
+                WebDriverWait(driver, 20).until(
                     EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".product-card"))
                 )
                 time.sleep(1)
 
                 cards = driver.find_elements(By.CSS_SELECTOR, ".product-card")
-
-                best_index = None
+                best_card = None
                 best_score = -1
 
-                for idx in range(len(cards)):
-                    # всегда берём свежий элемент, чтобы избежать stale
-                    cards = driver.find_elements(By.CSS_SELECTOR, ".product-card")
-                    card = cards[idx]
-
-                    title = ""
+                for card in cards:
                     try:
                         title_elem = card.find_element(By.CSS_SELECTOR, ".product-card__title")
                         title = title_elem.text.strip()
@@ -129,9 +123,9 @@ def main():
                     score = fuzz.token_sort_ratio(name_only.lower(), title.lower())
                     if score > best_score:
                         best_score = score
-                        best_index = idx
+                        best_card = card
 
-                if best_index is None or best_score < 50:
+                if best_card is None or best_score < 50:
                     print(f"Перекресток — {name_only} — товар не найден (score={best_score})")
                     results.append({
                         "store": "Перекресток",
@@ -141,10 +135,6 @@ def main():
                         "date": today
                     })
                     continue
-
-                # берём лучшую карточку
-                cards = driver.find_elements(By.CSS_SELECTOR, ".product-card")
-                best_card = cards[best_index]
 
                 price = extract_price(best_card, driver)
 

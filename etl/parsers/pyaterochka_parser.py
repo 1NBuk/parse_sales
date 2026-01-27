@@ -52,26 +52,22 @@ OUTPUT_FILE = os.path.join(BASE_DIR, "pyaterochka_prices.csv")
 # ================= ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =================
 
 def split_name_unit(product: str):
-    """Разделяем название и единицу товара"""
     match = re.search(r"(\d+(\.\d+)?\s?(г|кг|мл|л|шт))", product, re.IGNORECASE)
     if match:
         return product.replace(match.group(1), "").strip(), match.group(1)
     return product, ""
 
 def warmup_site(driver):
-    """Загрузка главной страницы для инициализации сессии"""
     driver.get("https://5ka.ru")
     time.sleep(5)
 
 def parse_product(driver, product, is_first=False):
-    """Парсинг одного товара на сайте Пятерочки"""
     name_only, unit_default = split_name_unit(product)
     unit_default = unit_default or "1 кг"
     encoded_query = urllib.parse.quote(product)
     url = f"https://5ka.ru/search/?text={encoded_query}"
 
     attempts = 2 if is_first else 1
-
     for attempt in range(attempts):
         if attempt > 0:
             print("Повторная попытка для первого товара...")
@@ -131,8 +127,6 @@ def parse_product(driver, product, is_first=False):
 
 def main():
     results = []
-    today_str = datetime.today().strftime("%Y-%m-%d")
-
     driver = create_driver(use_uc=True)
     time.sleep(5)
     warmup_site(driver)

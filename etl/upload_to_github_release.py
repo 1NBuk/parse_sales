@@ -14,12 +14,9 @@ LOCAL_FILE = os.path.join(
 
 
 def get_headers():
-    if not GITHUB_TOKEN:
-        raise RuntimeError("GITHUB_TOKEN не задан")
-
     return {
-        "Authorization": f"Bearer {GITHUB_TOKEN}",  # ✅ ВАЖНО
-        "Accept": "application/vnd.github.v3+json"
+        "Authorization": f"Bearer {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github+json"
     }
 
 
@@ -39,21 +36,28 @@ def create_release(tag, name):
         return response.json()
 
     if response.status_code == 422:
-        # релиз уже есть
         url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/releases/tags/{tag}"
-        response = requests.get(url, headers=get_headers())
-        return response.json()
+        return requests.get(url, headers=get_headers()).json()
 
-    raise RuntimeError(
-        f"Ошибка создания релиза: {response.status_code} {response.text}"
-    )
+    raise RuntimeError(response.text)
+
+
+def delete_asset_if_exists(release_id, filename):
+    url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/releases/{release_id}/assets"
+    assets = requests.get(url, headers=get_headers()).json()
+
+    for asset in assets:
+        if asset["name"] == filename:
+            requests.delete(asset["url"], headers=get_headers())
 
 
 def upload_asset(upload_url, filepath, filename):
     upload_url = upload_url.split("{")[0]
 
-    headers = get_headers()
-    headers["Content-Type"] = "text/csv"
+    headers = {
+        **get_headers(),
+        "Content-Type": "text/csv"
+    }
 
     with open(filepath, "rb") as f:
         response = requests.post(
@@ -64,25 +68,16 @@ def upload_asset(upload_url, filepath, filename):
         )
 
     if response.status_code != 201:
-        raise RuntimeError(
-            f"Ошибка загрузки файла: {response.status_code} {response.text}"
-        )
+        raise RuntimeError(response.text)
 
 
 def upload():
-    if not os.path.exists(LOCAL_FILE):
-        raise FileNotFoundError(f"Файл не найден: {LOCAL_FILE}")
-
     date_str = datetime.utcnow().strftime("%Y-%m-%d")
     tag = f"prices-{date_str}"
-    release_name = f"Цены продуктов — {date_str}"
     filename = f"clean_prices_{date_str}.csv"
 
-    release = create_release(tag, release_name)
+    release = create_release(tag, f"Цены продуктов — {date_str}")
+    delete_asset_if_exists(release["id"], filename)
     upload_asset(release["upload_url"], LOCAL_FILE, filename)
 
-    print(f"Файл {filename} загружен в GitHub Release {tag}")
-
-
-if __name__ == "__main__":
-    upload()
+    print(f"✔ Загружен {filename}")
