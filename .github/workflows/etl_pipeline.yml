@@ -26,15 +26,17 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            wget xvfb unzip \
+            xvfb unzip wget curl gnupg apt-transport-https \
             libxi6 libgconf-2-4 libnss3 libxss1 \
             libatk-bridge2.0-0 libgtk-3-0 fonts-liberation \
             libasound2
 
-      - name: Install Google Chrome 120 (fixed version)
+      - name: Install Google Chrome stable
         run: |
-          wget -q https://dl.google.com/linux/chrome/deb/pool/main/g/google-chrome-stable/google-chrome-stable_120.0.6099.224-1_amd64.deb
-          sudo apt install -y ./google-chrome-stable_120.0.6099.224-1_amd64.deb
+          wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+          sudo sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list'
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
 
       - name: Install Python dependencies
         run: |
@@ -50,8 +52,9 @@ jobs:
       - name: Run ETL Pipeline
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PYTHONPATH: ${{ github.workspace }}
         run: |
-          export PYTHONPATH=$PYTHONPATH:$(pwd)
+          echo "Запуск ETL pipeline: $(date)"
 
           Xvfb :99 -screen 0 1920x1080x24 &
           export DISPLAY=:99
