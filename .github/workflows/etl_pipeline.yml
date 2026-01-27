@@ -6,6 +6,9 @@ on:
     - cron: "0 11 * * *"
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   run_pipeline:
     runs-on: ubuntu-22.04
@@ -19,13 +22,13 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install Chrome and dependencies
+      - name: Install Chrome
         run: |
           sudo apt-get update
           sudo apt-get install -y wget unzip xvfb \
             libxi6 libgconf-2-4 libnss3 libxss1 \
             libatk-bridge2.0-0 libgtk-3-0 fonts-liberation \
-            libasound2-data libasound2-plugins alsa-utils
+            libasound2
 
           wget -q -O /tmp/chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
           sudo apt-get install -y /tmp/chrome.deb
@@ -40,7 +43,6 @@ jobs:
             rapidfuzz==3.6.1 \
             pandas==2.1.4 \
             numpy==1.26.2 \
-            chromedriver-autoinstaller==0.4.0 \
             requests
 
       - name: Run ETL Pipeline

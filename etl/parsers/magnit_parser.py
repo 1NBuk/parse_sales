@@ -14,7 +14,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 
 sys.path.append(os.path.dirname(__file__))
-from xdriver_utils import create_driver
+from etl.driver_utils import create_driver
 
 
 # ================= НАСТРОЙКИ =================

@@ -2,8 +2,6 @@ import os
 import requests
 from datetime import datetime
 
-# ===== НАСТРОЙКИ =====
-
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 REPO_OWNER = "1NBuk"
 REPO_NAME = "parse_sales"
@@ -14,16 +12,14 @@ LOCAL_FILE = os.path.join(
     BASE_DIR, "..", "data", "processed", "clean_prices.csv"
 )
 
-# =====================
-
 
 def get_headers():
     if not GITHUB_TOKEN:
-        raise RuntimeError("Переменная окружения GITHUB_TOKEN не задана")
+        raise RuntimeError("GITHUB_TOKEN не задан")
 
     return {
-        "Authorization": f"token {GITHUB_TOKEN}",
-        "Accept": "application/vnd.github+json"
+        "Authorization": f"Bearer {GITHUB_TOKEN}",  # ✅ ВАЖНО
+        "Accept": "application/vnd.github.v3+json"
     }
 
 
@@ -37,23 +33,20 @@ def create_release(tag, name):
         "prerelease": False
     }
 
-    response = requests.post(
-        url,
-        headers=get_headers(),
-        json=payload
-    )
+    response = requests.post(url, headers=get_headers(), json=payload)
 
-    if response.status_code not in (201, 422):
-        raise RuntimeError(
-            f"Ошибка создания релиза: {response.status_code} {response.text}"
-        )
+    if response.status_code == 201:
+        return response.json()
 
     if response.status_code == 422:
-        # релиз уже существует
+        # релиз уже есть
         url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/releases/tags/{tag}"
         response = requests.get(url, headers=get_headers())
+        return response.json()
 
-    return response.json()
+    raise RuntimeError(
+        f"Ошибка создания релиза: {response.status_code} {response.text}"
+    )
 
 
 def upload_asset(upload_url, filepath, filename):
@@ -80,7 +73,7 @@ def upload():
     if not os.path.exists(LOCAL_FILE):
         raise FileNotFoundError(f"Файл не найден: {LOCAL_FILE}")
 
-    date_str = datetime.now().strftime("%Y-%m-%d")
+    date_str = datetime.utcnow().strftime("%Y-%m-%d")
     tag = f"prices-{date_str}"
     release_name = f"Цены продуктов — {date_str}"
     filename = f"clean_prices_{date_str}.csv"
