@@ -55,9 +55,8 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}
         run: |
           echo "Запуск ETL pipeline: $(date)"
-
           Xvfb :99 -screen 0 1920x1080x24 &
           export DISPLAY=:99
-          sleep 3
-
+          sleep 5  # увеличено время перед запуском
           python etl/run_pipeline.py
+      
