@@ -7,8 +7,13 @@ from etl.upload_to_github_release import upload
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PARSERS_DIR = os.path.join(REPO_ROOT, "etl", "parsers")
 PYTHON_EXEC = "python3"
-RAW_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "raw")
+
+RAW_DIR = os.path.join(REPO_ROOT, "data", "raw")
+PROCESSED_DIR = os.path.join(REPO_ROOT, "data", "processed")
+
+# Создаем папки, если их нет
 os.makedirs(RAW_DIR, exist_ok=True)
+os.makedirs(PROCESSED_DIR, exist_ok=True)
 
 
 def run_all_parsers():
@@ -34,7 +39,7 @@ def run_all_parsers():
         print(result.stdout)
 
         if result.returncode != 0:
-            print(f"Ошибка в {parser}:")
+            print(f"⚠ Ошибка в {parser}:")
             print(result.stderr)
             errors.append(parser)
 
@@ -48,10 +53,9 @@ if __name__ == "__main__":
     run_all_parsers()
 
     print("Запуск transform шага")
-    transform_all()
+    transform_all()  # должен читать из RAW_DIR и писать в PROCESSED_DIR
 
     print("Загрузка данных")
-    upload()
+    upload()  # теперь будет безопасно удалять старый ассет и загружать новый
 
     print(f"ETL pipeline завершён: {datetime.now()}")
-

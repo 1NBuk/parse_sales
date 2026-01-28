@@ -36,7 +36,6 @@ def create_release(tag, name):
 
 def delete_existing_asset(upload_url, filename):
     upload_url = upload_url.split("{")[0]
-    # Получаем список существующих ассетов
     response = requests.get(upload_url.replace("{?name,label}", ""), headers=get_headers())
     if response.status_code != 200:
         return
@@ -47,6 +46,7 @@ def delete_existing_asset(upload_url, filename):
 
 
 def upload_asset(upload_url, filepath, filename):
+    # Удаляем старый ассет, если есть
     delete_existing_asset(upload_url, filename)
     upload_url = upload_url.split("{")[0]
     headers = get_headers()
@@ -65,7 +65,8 @@ def upload_asset(upload_url, filepath, filename):
 
 def upload():
     if not os.path.exists(LOCAL_FILE):
-        raise FileNotFoundError(f"Файл не найден: {LOCAL_FILE}")
+        print(f"Файл {LOCAL_FILE} не найден, пропускаем upload")
+        return
 
     date_str = datetime.utcnow().strftime("%Y-%m-%d")
     tag = f"prices-{date_str}"
@@ -76,7 +77,3 @@ def upload():
     upload_asset(release["upload_url"], LOCAL_FILE, filename)
 
     print(f"Файл {filename} загружен в GitHub Release {tag}")
-
-
-if __name__ == "__main__":
-    upload()
