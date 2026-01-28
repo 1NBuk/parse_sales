@@ -1,209 +1,173 @@
-import pandas as pd
-import os
+import time
+import random
 import re
+import csv
+from datetime import datetime
+from urllib.parse import quote_plus
 
-# ────────────────────────────────────────────────────────────────
-# Папки проекта
-# ────────────────────────────────────────────────────────────────
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException
 
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-RAW_DIR = os.path.join(BASE_DIR, "data", "raw")
-CLEAN_DIR = os.path.join(BASE_DIR, "data", "processed")
-os.makedirs(CLEAN_DIR, exist_ok=True)
-os.makedirs(RAW_DIR, exist_ok=True)
+from rapidfuzz import fuzz
 
-# ────────────────────────────────────────────────────────────────
-# Справочники
-# ────────────────────────────────────────────────────────────────
+# --------------------------------------------------
+BASE_URL = "https://yandex.ru/search/?text={query}&lr=120373&products_mode=1"
+OUTPUT_PATH = r"C:\Users\User\PycharmProjects\parse_sales\data\raw\yandex_products_prices.csv"
 
-KNOWN_BRANDS = [
-    "простоквашино", "окское", "брест-литовск", "олейна",
-    "greenfield", "коломенский", "мистраль", "петелинка"
+MIN_FUZZ_SCORE = 55
+MAX_WAIT = 30
+
+products = [
+    "Яйцо куриное Окское С1 10шт",
+    "Батон Коломенский Нарезной 200г",
+    "Молоко Простоквашино отборное пастеризованное 3.4-4.5%",
+    "Сахар кусковой белый 1кг",
+    "Соль пищевая 1кг",
+    "Крупа гречневая Мистраль 900г",
+    "Масло Олейна подсолнечное 1л",
+    "Масло Брест-Литовск сливочное 82,5% 180г",
+    "Филе грудки цыпленка Петелинка",
+    "Чай Greenfield Golden Ceylon 100г",
+    "Картофель белый, вес",
+    "Лук репчатый",
+    "Социальный товар Морковь",
+    "Капуста белокочанная",
+    "Яблоки сезонные"
 ]
 
-FRUITS_VEG = ["картофель", "лук репчатый", "морковь", "капуста белокочанная", "яблоки"]
+# --------------------------------------------------
+def pause(a=0.6, b=1.6):
+    time.sleep(random.uniform(a, b))
 
-# ────────────────────────────────────────────────────────────────
-# Утилиты
-# ────────────────────────────────────────────────────────────────
+def js_text(driver, el):
+    return driver.execute_script("return arguments[0].textContent || '';", el).strip()
 
-def remove_invisible_chars(text):
-    if pd.isna(text):
-        return None
-    text = re.sub(r"[\u200B-\u200D\u2060\uFEFF]", "", str(text))
-    return text.strip()
+def extract_unit(text):
+    m = re.search(r"(\d+\s?(?:шт|г|кг|мл|л))", text.lower())
+    return m.group(1) if m else ""
 
-def parse_price(value):
-    if pd.isna(value) or str(value).strip() == "":
-        return None
-    value = str(value).replace("₽", "").replace(" ", "").replace(",", ".")
+def smooth_scroll(driver):
+    height = driver.execute_script("return document.body.scrollHeight")
+    steps = random.randint(5, 8)
+    for i in range(1, steps + 1):
+        driver.execute_script(f"window.scrollTo(0, {int(height * i / steps)});")
+        pause(0.4, 0.9)
+
+def create_driver():
+    options = Options()
+    options.add_argument("--start-maximized")
+    options.add_argument("--disable-blink-features=AutomationControlled")
+    return webdriver.Chrome(options=options)
+
+# --------------------------------------------------
+def find_cards(driver, wait):
+    """
+    Возвращает список карточек одного из двух типов
+    """
+    selectors = [
+        "div.EProductSnippet2",  # старый тип
+        "li.EShopItem"           # новый тип
+    ]
+    for sel in selectors:
+        try:
+            wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, sel)))
+            cards = driver.find_elements(By.CSS_SELECTOR, sel)
+            if cards:
+                return cards, sel
+        except TimeoutException:
+            continue
+    return [], None
+
+# --------------------------------------------------
+def extract_data(card, card_type, driver):
     try:
-        return float(value)
-    except ValueError:
-        return None
+        if card_type == "div.EProductSnippet2":
+            # Старый тип
+            title_el = card.find_element(By.CSS_SELECTOR, ".EProductSnippet2-Title")
+            product_name = js_text(driver, title_el)
 
-def extract_weight_from_text(text):
-    if pd.isna(text):
-        return None, None
-    text = str(text).lower().replace(" ", "").replace(",", ".")
-    match = re.search(r"(\d+(\.\d+)?)(кг|г|гр|мл|л|шт)?", text)
-    if not match:
-        return None, None
-    qty = float(match.group(1))
-    unit = match.group(3)
-    if unit in ("г", "гр"):
-        return int(qty), "g"
-    if unit == "кг":
-        return int(qty * 1000), "g"
-    if unit == "мл":
-        return int(qty), "ml"
-    if unit == "л":
-        return int(qty * 1000), "ml"
-    if unit == "шт":
-        return int(qty), "pcs"
-    return None, None
+            price_el = card.find_element(By.CSS_SELECTOR, ".EPrice-Value")
+            price = js_text(driver, price_el)
 
-def normalize_unit(unit_raw):
-    return extract_weight_from_text(unit_raw)
+            store_el = card.find_element(By.CSS_SELECTOR, ".EShopName")
+            store = js_text(driver, store_el)
 
-def extract_brand(name):
-    if pd.isna(name) or str(name).strip() == "":
-        return "No Brand"
-    text = str(name).lower()
-    if "вкусвилл" in text:
-        return "ВкусВилл"
-    if "лента" in text:
-        return "Лента"
-    for brand in KNOWN_BRANDS:
-        if re.search(rf"(?:^|[\s,]){re.escape(brand)}(?:[\s,]|$)", text):
-            return brand.title()
-    return "No Brand"
+        else:
+            # Новый тип
+            title_el = card.find_element(By.CSS_SELECTOR, ".EShopItem-Title")
+            product_name = js_text(driver, title_el)
 
-def clean_product_name(name):
-    if pd.isna(name):
-        return None
-    text = remove_invisible_chars(str(name).lower())
-    text = re.sub(r"вкусвилл.*товарный\s+знак.*", "вкусвилл", text, flags=re.DOTALL)
-    text = re.sub(r"лента.*товарный\s+знак.*", "лента", text, flags=re.DOTALL)
-    # Канонизация популярных товаров
-    if "яйц" in text:
-        return "Яйцо куриное"
-    if "молок" in text:
-        return "Молоко"
-    if "чай" in text:
-        return "Чай"
-    if "масло сливоч" in text:
-        return "Масло сливочное"
-    if "масло подсолнеч" in text:
-        return "Масло подсолнечное"
-    if "батон" in text:
-        return "Батон"
-    if "яблок" in text:
-        return "Яблоки"
-    # Очистка лишнего
-    text = re.sub(r"(социальный\s+товар|вес|отечественная|сезонные?)", " ", text)
-    text = re.sub(r"\d+(\.\d+)?\s*(кг|г|гр|мл|л|шт)?", " ", text)
-    text = re.sub(r"\d+(\.\d+)?%", " ", text)
-    text = re.sub(r"[^\w\s]", " ", text)
-    text = re.sub(r"\s+", " ", text).strip()
-    return text.title() if text else None
+            price_el = card.find_element(By.CSS_SELECTOR, ".EPrice-Value")
+            price = js_text(driver, price_el)
 
-def fix_logical_units(row):
-    product = str(row.get("product_clean", "")).lower()
-    qty, unit = row.get("quantity"), row.get("unit_normalized")
-    prod_qty, _ = extract_weight_from_text(row.get("product"))
-    if product == "чай":
-        return (prod_qty or 50, "g")
-    if product == "молоко":
-        return (prod_qty or 930, "ml")
-    if product == "яйцо куриное":
-        return (10, "pcs")
-    if product in [x.lower() for x in FRUITS_VEG]:
-        return (prod_qty or 1000, "g")
-    return qty, unit
+            store_el = card.find_element(By.CSS_SELECTOR, ".EShopItem-ShopName")
+            store = js_text(driver, store_el)
 
-def fill_missing_logical(df):
-    for product in df["product_clean"].unique():
-        sub = df[df["product_clean"] == product]
-        if sub["quantity"].notna().any():
-            mean_qty = int(sub["quantity"].dropna().mean())
-            unit = sub["unit_normalized"].dropna().iloc[0]
-            df.loc[(df["product_clean"] == product) & df["quantity"].isna(), "quantity"] = mean_qty
-            df.loc[(df["product_clean"] == product) & df["unit_normalized"].isna(), "unit_normalized"] = unit
-    return df
+        unit = extract_unit(product_name)
+        return store, product_name, unit, price
+    except Exception:
+        return None, None, None, None
 
-def unify_units(df):
-    df = df.copy()
-    df = fill_missing_logical(df)
-    fixed = df.apply(fix_logical_units, axis=1, result_type="expand")
-    df["quantity"], df["unit_normalized"] = fixed[0], fixed[1]
-    return df
+# --------------------------------------------------
+def main():
+    driver = create_driver()
+    wait = WebDriverWait(driver, MAX_WAIT)
+    today = datetime.today().strftime("%Y-%m-%d")
+    results = []
 
-# ────────────────────────────────────────────────────────────────
-# Очистка одного файла
-# ────────────────────────────────────────────────────────────────
+    try:
+        for query in products:
+            print(f"\n🔍 Поиск: {query}")
+            url = BASE_URL.format(query=quote_plus(query))
+            driver.get(url)
+            pause(1.5, 2.5)
+            smooth_scroll(driver)
+            pause(1.0, 2.0)
 
-def clean_file(path):
-    df = pd.read_csv(path)
-    df.columns = df.columns.str.strip()
-    if "found_name" in df.columns:
-        df.drop(columns=["found_name"], inplace=True)
+            cards, card_type = find_cards(driver, wait)
 
-    df["store"] = df["store"].apply(remove_invisible_chars)
-    df["product"] = df["product"].apply(remove_invisible_chars)
-    df["price"] = df["price"].apply(parse_price).apply(lambda x: "No price" if pd.isna(x) else x)
+            if not cards:
+                print(f"⚠️  Карточки не найдены для {query}")
+                results.append({"store": None, "product": query, "unit": None, "price": None, "date": today})
+                continue
 
-    parsed = df["unit"].apply(normalize_unit)
-    df["quantity"] = parsed.apply(lambda x: x[0])
-    df["unit_normalized"] = parsed.apply(lambda x: x[1])
+            print(f"Найдено карточек: {len(cards)} (тип: {card_type})")
 
-    df["brand"] = df["product"].apply(extract_brand)
-    df["product_clean"] = df["product"].apply(clean_product_name)
+            # Обработка карточек
+            for card in cards:
+                pause(0.3, 0.8)
+                store, product_name, unit, price = extract_data(card, card_type, driver)
+                if not product_name:
+                    continue
+                score = fuzz.token_set_ratio(query.lower(), product_name.lower())
+                if score < MIN_FUZZ_SCORE:
+                    continue
+                results.append({
+                    "store": store,
+                    "product": product_name,
+                    "unit": unit,
+                    "price": price,
+                    "date": today
+                })
 
-    df = df.apply(fix_logical_units, axis=1, result_type="expand").assign(
-        quantity=lambda x: x[0],
-        unit_normalized=lambda x: x[1]
-    )
+            pause(2.0, 3.0)
 
-    df.drop(columns=["unit"], errors="ignore", inplace=True)
+    finally:
+        driver.quit()
 
-    if "date" in df.columns:
-        df["date"] = pd.to_datetime(df["date"], errors="coerce").dt.date
+    # --------------------------------------------------
+    with open(OUTPUT_PATH, "w", newline="", encoding="utf-8-sig") as f:
+        writer = csv.DictWriter(f, fieldnames=["store", "product", "unit", "price", "date"])
+        writer.writeheader()
+        writer.writerows(results)
 
-    return df[df["product_clean"].notna()]
-
-# ────────────────────────────────────────────────────────────────
-# Основной пайплайн
-# ────────────────────────────────────────────────────────────────
-
-def transform_all():
-    if not os.path.exists(RAW_DIR):
-        print("RAW_DIR не найден, пропуск трансформации")
-        return
-
-    frames = []
-    for file in os.listdir(RAW_DIR):
-        if file.endswith(".csv"):
-            try:
-                df = clean_file(os.path.join(RAW_DIR, file))
-                frames.append(df)
-                print(f"[OK] cleaned {file} ({len(df)} строк)")
-            except Exception as e:
-                print(f"[ERROR] {file} → {e}")
-
-    if not frames:
-        print("No data to process")
-        return
-
-    full_df = pd.concat(frames, ignore_index=True)
-    full_df = unify_units(full_df)
-    full_df = full_df[["store", "product_clean", "brand", "price", "quantity", "unit_normalized", "date"]]
-
-    output_path = os.path.join(CLEAN_DIR, "clean_prices.csv")
-    full_df.to_csv(output_path, index=False, encoding="utf-8-sig")
-    print(f"\nSaved: {output_path}")
-
-# ────────────────────────────────────────────────────────────────
+    print("\n✅ Готово")
+    print(f"Сохранено записей: {len(results)}")
+    print(f"Файл: {OUTPUT_PATH}")
 
 if __name__ == "__main__":
-    transform_all()
+    main()
