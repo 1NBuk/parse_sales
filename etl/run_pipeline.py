@@ -1,8 +1,8 @@
 import os
 import subprocess
 from datetime import datetime
-
-from etl.upload_to_github_release import upload
+from transformer.transform import transform_all
+from etl.upload_to_gdrive import upload
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PARSERS_DIR = os.path.join(REPO_ROOT, "etl", "parsers")
@@ -32,7 +32,7 @@ def run_all_parsers():
         print(result.stdout)
 
         if result.returncode != 0:
-            print(f"⚠ Ошибка в {parser}:")
+            print(f"Ошибка в {parser}:")
             print(result.stderr)
             errors.append(parser)
 
@@ -45,6 +45,11 @@ if __name__ == "__main__":
 
     run_all_parsers()
 
+    print("Запуск transform шага")
+    transform_all()
+
+    print("Загрузка данных")
+    upload()
+
     print(f"ETL pipeline завершён: {datetime.now()}")
 
-    upload()

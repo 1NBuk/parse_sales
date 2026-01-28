@@ -5,28 +5,18 @@ import urllib.parse
 import pandas as pd
 from datetime import datetime
 from rapidfuzz import fuzz
-import sys
 
-# Добавляем путь к utils
-sys.path.append(os.path.dirname(__file__))
-
-try:
-    from etl.driver_utils import create_driver
-except ImportError:
-    import importlib.util
-    spec = importlib.util.spec_from_file_location(
-        "driver_utils",
-        os.path.join(os.path.dirname(__file__), "driver_utils.py")
-    )
-    driver_utils = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(driver_utils)
-    create_driver = driver_utils.create_driver
-
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 # ================= НАСТРОЙКИ =================
+
+CHROMEDRIVER_PATH = r"C:\Users\User\Tools\chromedriver.exe"
+
 PRODUCTS = [
     "Яйцо куриное Окское отборное С1 10шт",
     "Батон Коломенский Нарезной 200г",
@@ -38,7 +28,7 @@ PRODUCTS = [
     "Масло Брест-Литовск сливочное 82,5% 180г",
     "Филе грудки цыпленка Петелинка",
     "Чай Greenfield Золотой Цейлон 100г",
-    "Картофель",
+    "Картофель отечественный",
     "Лук репчатый",
     "Морковь",
     "Капуста белокочанная",
@@ -54,20 +44,56 @@ OUTPUT_FILE = os.path.join(BASE_DIR, "pyaterochka_prices.csv")
 def split_name_unit(product: str):
     match = re.search(r"(\d+(\.\d+)?\s?(г|кг|мл|л|шт))", product, re.IGNORECASE)
     if match:
-        return product.replace(match.group(1), "").strip(), match.group(1)
-    return product, ""
+        unit = match.group(1)
+        name = product.replace(unit, "").strip()
+    else:
+        unit = ""
+        name = product
+    return name, unit
+
+
+def setup_driver():
+    from selenium import webdriver
+    from selenium.webdriver.chrome.service import Service
+    from webdriver_manager.chrome import ChromeDriverManager
+    from selenium.webdriver.chrome.options import Options
+
+    options = Options()
+    options.add_argument("--start-maximized")
+    options.add_argument("--disable-blink-features=AutomationControlled")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--no-sandbox")
+    options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    options.add_experimental_option('useAutomationExtension', False)
+
+    # Автоматическая загрузка правильной версии ChromeDriver
+    service = Service(ChromeDriverManager().install())
+    driver = webdriver.Chrome(service=service, options=options)
+
+    # Маскируем Selenium
+    driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
+        "source": """
+        Object.defineProperty(navigator, 'webdriver', {
+            get: () => undefined
+        });
+        """
+    })
+
+    return driver
+
 
 def warmup_site(driver):
     driver.get("https://5ka.ru")
     time.sleep(5)
 
+
 def parse_product(driver, product, is_first=False):
     name_only, unit_default = split_name_unit(product)
-    unit_default = unit_default or "1 кг"
     encoded_query = urllib.parse.quote(product)
     url = f"https://5ka.ru/search/?text={encoded_query}"
 
     attempts = 2 if is_first else 1
+
     for attempt in range(attempts):
         if attempt > 0:
             print("Повторная попытка для первого товара...")
@@ -80,6 +106,7 @@ def parse_product(driver, product, is_first=False):
             WebDriverWait(driver, 10).until(
                 EC.presence_of_all_elements_located((By.CSS_SELECTOR, "div.css-i9gxme"))
             )
+
             cards = driver.find_elements(By.CSS_SELECTOR, "div.css-i9gxme")
             selected_card = None
             max_score = 0
@@ -101,48 +128,64 @@ def parse_product(driver, product, is_first=False):
             # Цена
             price = None
             try:
+                WebDriverWait(selected_card, 5).until(
+                    lambda x: x.find_elements(By.CSS_SELECTOR, "div.css-1gnr8ln span")
+                )
                 spans = selected_card.find_elements(By.CSS_SELECTOR, "div.css-1gnr8ln span")
                 if len(spans) >= 2:
                     price = f"{spans[0].text.strip()},{spans[1].text.strip()} ₽"
             except:
                 pass
 
-            # Единица
+            # Единица измерения
             try:
-                unit_elem = selected_card.find_element(By.CSS_SELECTOR, "div.css-p5esxm > p[type='caption']")
+                unit_elem = selected_card.find_element(
+                    By.CSS_SELECTOR, "div.css-p5esxm > p[type='caption']"
+                )
                 unit = unit_elem.text.strip() if unit_elem.text.strip() else unit_default
             except:
-                unit = unit_default
+                unit = unit_default or "1000 гр"
 
             print(f"{name_only} — {price} — {unit} (score: {max_score})")
-            return {"store": "Пятерочка", "product": product, "unit": unit, "price": price, "date": datetime.today().strftime("%Y-%m-%d")}
+
+            return {
+                "store": "Пятерочка",
+                "product": product,
+                "unit": unit,
+                "price": price,
+                "date": today
+            }
 
         except:
             continue
 
     print(f"Пятерочка — {name_only} — товар не найден")
-    return {"store": "Пятерочка", "product": product, "unit": unit_default, "price": None, "date": datetime.today().strftime("%Y-%m-%d")}
+    return {
+        "store": "Пятерочка",
+        "product": product,
+        "unit": unit_default or "1000 гр",
+        "price": None,
+        "date": today
+    }
+
 
 # ================= ОСНОВНОЙ КОД =================
 
-def main():
-    results = []
-    driver = create_driver(use_uc=True)
-    time.sleep(5)
-    warmup_site(driver)
+today = datetime.today().strftime("%Y-%m-%d")
+results = []
 
-    try:
-        for idx, product in enumerate(PRODUCTS):
-            result = parse_product(driver, product, is_first=(idx == 0))
-            results.append(result)
-            time.sleep(1)
+driver = setup_driver()
+time.sleep(5)
+warmup_site(driver)
 
-    finally:
-        driver.quit()
+for idx, product in enumerate(PRODUCTS):
+    result = parse_product(driver, product, is_first=(idx == 0))
+    results.append(result)
+    time.sleep(1)
 
-    df = pd.DataFrame(results)
-    df.to_csv(OUTPUT_FILE, index=False, encoding="utf-8-sig")
-    print(f"\nСохранено {len(df)} записей в {OUTPUT_FILE}")
+driver.quit()
 
-if __name__ == "__main__":
-    main()
+df = pd.DataFrame(results)
+df.to_csv(OUTPUT_FILE, index=False, encoding="utf-8-sig")
+
+print(f"\nСохранено {len(df)} записей в {OUTPUT_FILE}")

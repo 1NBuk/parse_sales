@@ -1,79 +1,126 @@
-import os
+# driver_utils.py
+import random
 import time
-import undetected_chromedriver as uc
-
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+from webdriver_manager.chrome import ChromeDriverManager
 
-def create_driver(use_uc=True):
+
+def create_driver(use_uc=False, headless=False, disable_bot_detection=True, random_user_agent=False):
     """
-    Создаёт Chrome-драйвер:
-    - use_uc=True: undetected_chromedriver
-    - use_uc=False: обычный Selenium Chrome
-    Настройки оптимизированы для CI (GitHub Actions) и стабильной работы headless.
+    Создает драйвер с настройками для обхода обнаружения
     """
-    is_ci = os.getenv("GITHUB_ACTIONS") == "true"
+    try:
+        if use_uc:
+            # Используем undetected_chromedriver
+            import undetected_chromedriver as uc
+            print("Используется undetected_chromedriver")
 
-    # --- Общие настройки Chrome ---
-    chrome_args = [
-        "--no-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-gpu",
-        "--window-size=1920,1080",
-        "--disable-extensions",
-        "--disable-blink-features=AutomationControlled",
-        "--disable-features=VizDisplayCompositor",
-        "--remote-debugging-port=9222",
-        "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    ]
-    if is_ci:
-        chrome_args.append("--headless=new")
+            # Настройки для UC
+            options = uc.ChromeOptions()
 
-    if use_uc:
-        # --- undetected_chromedriver ---
-        options = uc.ChromeOptions()
-        for arg in chrome_args:
-            options.add_argument(arg)
+            # Базовые настройки
+            options.add_argument("--disable-blink-features=AutomationControlled")
+            options.add_argument("--disable-dev-shm-usage")
+            options.add_argument("--no-sandbox")
+            options.add_argument("--disable-gpu")
+            options.add_argument("start-maximized")
+            options.add_argument("--disable-infobars")
+            options.add_argument("--disable-notifications")
 
-        caps = DesiredCapabilities.CHROME.copy()
-        caps["pageLoadStrategy"] = "eager"  # быстрее открывает страницы
+            # Отключаем автоматическое управление браузером
+            options.add_argument("--disable-browser-side-navigation")
 
-        driver = uc.Chrome(options=options, desired_capabilities=caps, service=Service())
-    else:
-        # --- обычный Selenium Chrome ---
-        from selenium import webdriver
-        from selenium.webdriver.chrome.options import Options
-        from selenium.webdriver.chrome.service import Service as ChromeService
+            # Случайный User-Agent
+            if random_user_agent:
+                user_agents = [
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36",
+                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                ]
+                options.add_argument(f"user-agent={random.choice(user_agents)}")
 
-        options = Options()
-        for arg in chrome_args:
-            options.add_argument(arg)
+            # Режим headless
+            if headless:
+                options.add_argument("--headless")
 
-        # Для Selenium 4+ больше не используем desired_capabilities напрямую
-        options.set_capability("pageLoadStrategy", "eager")
+            # Инициализация UC
+            driver = uc.Chrome(
+                options=options,
+                use_subprocess=True,
+                driver_executable_path=None,
+                browser_executable_path=None,
+                version_main=None,
+                suppress_welcome=True
+            )
 
-        driver = webdriver.Chrome(service=ChromeService(), options=options)
+        else:
+            # Используем обычный Selenium Chrome
+            print("Используется обычный Selenium Chrome")
 
-    # --- Таймауты ---
-    driver.set_page_load_timeout(180)  # max время ожидания загрузки страницы
-    driver.implicitly_wait(20)          # implicit wait для поиска элементов
-    return driver
+            options = Options()
 
+            # Базовые настройки для обхода обнаружения
+            options.add_argument("--disable-blink-features=AutomationControlled")
+            options.add_experimental_option("excludeSwitches", ["enable-automation"])
+            options.add_experimental_option('useAutomationExtension', False)
 
-def safe_get(driver, url, retries=3, delay=5):
-    """
-    Безопасный driver.get() с повторными попытками.
-    retries: число попыток
-    delay: задержка после открытия страницы
-    """
-    for attempt in range(1, retries + 1):
+            # Дополнительные настройки
+            options.add_argument("--disable-dev-shm-usage")
+            options.add_argument("--no-sandbox")
+            options.add_argument("--disable-gpu")
+            options.add_argument("start-maximized")
+            options.add_argument("--disable-infobars")
+            options.add_argument("--disable-notifications")
+
+            # Отключаем автоматическое управление браузером
+            options.add_argument("--disable-browser-side-navigation")
+
+            # Случайный User-Agent
+            if random_user_agent:
+                user_agents = [
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36",
+                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                ]
+                options.add_argument(f"user-agent={random.choice(user_agents)}")
+
+            # Режим headless
+            if headless:
+                options.add_argument("--headless=new")
+
+            # Инициализация драйвера
+            service = Service(ChromeDriverManager().install())
+            driver = webdriver.Chrome(service=service, options=options)
+
+        # Размер окна (только если не headless)
+        if not headless:
+            width = random.randint(1200, 1920)
+            height = random.randint(800, 1080)
+            driver.set_window_size(width, height)
+
+        # Выполняем скрипты для скрытия автоматизации
+        if not use_uc:  # UC уже делает это автоматически
+            driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+
+        return driver
+
+    except Exception as e:
+        print(f"Ошибка при создании драйвера: {e}")
+
+        # Попытка создать драйвер с минимальными настройками
         try:
-            driver.get(url)
-            time.sleep(delay)
-            return
-        except Exception as e:
-            print(f"⚠ Попытка {attempt}/{retries}: ошибка при открытии {url}: {e}")
-            if attempt == retries:
-                raise
-            time.sleep(delay + 2)
+            options = Options()
+            options.add_argument("--disable-blink-features=AutomationControlled")
+            options.add_argument("--no-sandbox")
+            service = Service(ChromeDriverManager().install())
+            driver = webdriver.Chrome(service=service, options=options)
+            return driver
+        except Exception as e2:
+            print(f"Критическая ошибка: {e2}")
+            raise

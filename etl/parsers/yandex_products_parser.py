@@ -27,22 +27,23 @@ KNOWN_BRANDS = [
 ]
 
 FRUITS_VEG = [
-    "яблоки",
-    "капуста белокочанная",
     "картофель",
+    "лук репчатый",
     "морковь",
-    "лук"
+    "капуста белокочанная",
+    "яблоки"
 ]
 
+# ────────────────────────────────────────────────────────────────
+# Утилиты
+# ────────────────────────────────────────────────────────────────
 
 def remove_invisible_chars(text):
     """Удаляет невидимые и спецсимволы из текста"""
     if pd.isna(text):
         return None
-    # Убираем невидимые символы типа \u200b, \u2060 и прочие
     text = re.sub(r"[\u200B-\u200D\u2060\uFEFF]", "", str(text))
-    text = text.strip()
-    return text
+    return text.strip()
 
 def parse_price(value):
     """Парсит цену и возвращает float или None"""
@@ -85,9 +86,13 @@ def extract_brand(name):
     if pd.isna(name) or str(name).strip() == "":
         return "No Brand"
     text = str(name).lower()
-    # Специальное сокращение ВкусВилл
+
+    # Специальное сокращение магазинов
     if "вкусвилл" in text:
         return "ВкусВилл"
+    if "лента" in text:
+        return "Лента"
+
     for brand in KNOWN_BRANDS:
         if re.search(rf"(?:^|[\s,]){re.escape(brand)}(?:[\s,]|$)", text):
             return brand.title()
@@ -99,10 +104,9 @@ def clean_product_name(name):
         return None
     text = remove_invisible_chars(str(name).lower())
 
-    # Сокращаем длинное ВкусВилл
-    text = re.sub(
-        r"вкусвилл.*товарный\s+знак.*", "вкусвилл", text, flags=re.DOTALL
-    )
+    # Сокращаем длинные магазины
+    text = re.sub(r"вкусвилл.*товарный\s+знак.*", "вкусвилл", text, flags=re.DOTALL)
+    text = re.sub(r"лента.*товарный\s+знак.*", "лента", text, flags=re.DOTALL)
 
     # Канонизация популярных товаров
     if "яйц" in text:
@@ -129,38 +133,23 @@ def clean_product_name(name):
     return text.title() if text else None
 
 def fix_logical_units(row):
-    """
-    Логические единицы измерения по типу продукта
-    """
-    product = str(row["product_clean"]).lower()
-    qty = row["quantity"]
-    unit = row["unit_normalized"]
+    """Исправляет специальные единицы для некоторых продуктов"""
+    product = row["product_clean"].lower()
+    unit_qty, unit_unit = row["quantity"], row["unit_normalized"]
+    prod_qty, _ = extract_weight_from_text(row["product"])
 
-    # --- Фрукты и овощи → ВСЕГДА 1000 g, если пропуск ---
-    for fv in FRUITS_VEG:
-        if fv in product:
-            if pd.isna(qty) or pd.isna(unit):
-                return 1000, "g"
-            return qty, unit
-
-    # --- Молоко ---
-    if product == "молоко":
-        return (qty or 930), "ml"
-
-    # --- Яйца ---
-    if product == "яйцо куриное":
-        return 10, "pcs"
-
-    # --- Чай ---
     if product == "чай":
-        return (qty or 50), "g"
-
-    return qty, unit
-
+        return (prod_qty or 50, "g")
+    if product == "молоко":
+        return (prod_qty or 930, "ml")
+    if product == "яйцо куриное":
+        return (10, "pcs")
+    if product in [f.lower() for f in FRUITS_VEG]:
+        return (prod_qty or 1000, "g")
+    return unit_qty, unit_unit
 
 def fill_missing_logical(df):
     """Заполняет пропущенные бренды и логические единицы"""
-    # Заполнение quantity и unit_normalized по продукту
     for product in df["product_clean"].unique():
         sub = df[df["product_clean"] == product]
         if sub["quantity"].notna().any():
@@ -169,43 +158,13 @@ def fill_missing_logical(df):
             df.loc[(df["product_clean"] == product) & df["quantity"].isna(), "quantity"] = mean_qty
             df.loc[(df["product_clean"] == product) & df["unit_normalized"].isna(), "unit_normalized"] = unit
     return df
-def normalize_store(store):
-    """
-    Приводит название магазина к короткому каноничному виду
-    """
-    if pd.isna(store):
-        return None
-
-    text = remove_invisible_chars(store).lower()
-
-    if "вкусвилл" in text:
-        return "ВкусВилл"
-
-    if "лента" in text:
-        return "Лента"
-
-    if "глобус" in text:
-        return "Глобус"
-
-    if "ашан" in text:
-        return "Ашан"
-
-    if "мегамаркет" in text:
-        return "Мегамаркет"
-
-    # домены оставляем как есть
-    return store.strip()
 
 def unify_units(df):
     """Приводит все продукты к единым единицам измерения"""
     df = df.copy()
-
     df = fill_missing_logical(df)
-
-    # Применяем fix для всех строк
     fixed = df.apply(fix_logical_units, axis=1, result_type="expand")
     df["quantity"], df["unit_normalized"] = fixed[0], fixed[1]
-
     return df
 
 # ────────────────────────────────────────────────────────────────
@@ -216,34 +175,27 @@ def clean_file(path):
     df = pd.read_csv(path)
     df.columns = df.columns.str.strip()
 
-    # Убираем лишние колонки
     if "found_name" in df.columns:
         df = df.drop(columns=["found_name"])
 
-    # Убираем невидимые символы в store и product
-    df["store"] = df["store"].apply(normalize_store)
+    df["store"] = df["store"].apply(remove_invisible_chars)
     df["product"] = df["product"].apply(remove_invisible_chars)
 
-    # Цена
     df["price"] = df["price"].apply(parse_price)
     df["price"] = df["price"].apply(lambda x: "No price" if pd.isna(x) else x)
 
-    # Единицы измерения
     parsed = df["unit"].apply(normalize_unit)
     df["quantity"] = parsed.apply(lambda x: x[0])
     df["unit_normalized"] = parsed.apply(lambda x: x[1])
 
-    # Бренд и очищенное название
     df["brand"] = df["product"].apply(extract_brand)
     df["product_clean"] = df["product"].apply(clean_product_name)
 
-    # Исправление специальных единиц
     fixed = df.apply(fix_logical_units, axis=1, result_type="expand")
     df["quantity"], df["unit_normalized"] = fixed[0], fixed[1]
 
     df = df.drop(columns=["unit"], errors="ignore")
 
-    # Дата
     if "date" in df.columns:
         df["date"] = pd.to_datetime(df["date"], errors="coerce").dt.date
 
