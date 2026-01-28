@@ -2,7 +2,7 @@ import os
 import subprocess
 from datetime import datetime
 from transformer.transform import transform_all
-from etl.upload_to_gdrive import upload
+from etl.upload_to_github_release import upload
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PARSERS_DIR = os.path.join(REPO_ROOT, "etl", "parsers")
