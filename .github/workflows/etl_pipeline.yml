@@ -48,6 +48,10 @@ jobs:
             pandas==2.1.4 \
             numpy==1.26.2 \
             requests
+      - name: Создать необходимые директории
+        run: |
+          mkdir -p data/raw
+          mkdir -p data/processed
 
       - name: Run ETL Pipeline
         env:

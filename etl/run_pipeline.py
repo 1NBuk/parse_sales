@@ -7,6 +7,8 @@ from etl.upload_to_github_release import upload
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PARSERS_DIR = os.path.join(REPO_ROOT, "etl", "parsers")
 PYTHON_EXEC = "python3"
+RAW_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "raw")
+os.makedirs(RAW_DIR, exist_ok=True)
 
 
 def run_all_parsers():
