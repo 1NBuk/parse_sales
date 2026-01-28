@@ -35,19 +35,25 @@ def create_release(tag, name):
 
 
 def delete_existing_asset(upload_url, filename):
-    upload_url = upload_url.split("{")[0]
-    response = requests.get(upload_url.replace("{?name,label}", ""), headers=get_headers())
+    """Удаляет ассет с GitHub Release, если он существует"""
+    base_url = upload_url.split("{")[0]
+    response = requests.get(base_url, headers=get_headers())
     if response.status_code != 200:
+        print(f"Не удалось получить список ассетов: {response.text}")
         return
     for asset in response.json():
         if asset["name"] == filename:
             del_url = asset["url"]
-            requests.delete(del_url, headers=get_headers())
+            del_response = requests.delete(del_url, headers=get_headers())
+            if del_response.status_code == 204:
+                print(f"Старый файл {filename} удалён")
+            else:
+                print(f"Не удалось удалить {filename}: {del_response.text}")
 
 
 def upload_asset(upload_url, filepath, filename):
-    # Удаляем старый ассет, если есть
     delete_existing_asset(upload_url, filename)
+
     upload_url = upload_url.split("{")[0]
     headers = get_headers()
     headers["Content-Type"] = "text/csv"
@@ -65,7 +71,7 @@ def upload_asset(upload_url, filepath, filename):
 
 def upload():
     if not os.path.exists(LOCAL_FILE):
-        print(f"Файл {LOCAL_FILE} не найден, пропускаем upload")
+        print(f"Файл не найден: {LOCAL_FILE}, пропуск загрузки")
         return
 
     date_str = datetime.utcnow().strftime("%Y-%m-%d")
@@ -77,3 +83,7 @@ def upload():
     upload_asset(release["upload_url"], LOCAL_FILE, filename)
 
     print(f"Файл {filename} загружен в GitHub Release {tag}")
+
+
+if __name__ == "__main__":
+    upload()
