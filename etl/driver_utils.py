@@ -13,8 +13,9 @@ def create_driver(use_uc=False, headless=False, disable_bot_detection=True, rand
     Создает драйвер с настройками для обхода обнаружения и поддержкой прокси
     """
     try:
-        # Получаем прокси из переменных окружения
-        proxy_url = os.getenv('PROXY_URL')
+        proxy_url = os.getenv("PROXY_URL")
+        if proxy_url and not proxy_url.startswith("http"):
+            proxy_url = f"http://{proxy_url}"
         if proxy_url:
             print(f"Используется прокси: {proxy_url}")
 
