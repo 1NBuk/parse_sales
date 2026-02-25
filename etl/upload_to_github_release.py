@@ -51,22 +51,27 @@ def delete_existing_asset(upload_url, filename):
                 print(f"Не удалось удалить {filename}: {del_response.text}")
 
 
-def upload_asset(upload_url, filepath, filename):
-    delete_existing_asset(upload_url, filename)
+def upload_asset(upload_url, file_path, filename):
+    # УДАЛЯЕМ СТАРЫЙ АССЕТ ПЕРЕД ЗАГРУЗКОЙ
+    headers = {'Authorization': f'token {GITHUB_TOKEN}'}
+    delete_url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/releases/assets/{filename}"
 
-    upload_url = upload_url.split("{")[0]
-    headers = get_headers()
-    headers["Content-Type"] = "text/csv"
+    try:
+        r = requests.delete(delete_url, headers=headers)
+        print(f"Старый ассет удалён: {r.status_code}")
+    except:
+        print("Старого ассета нет — ок")
 
-    with open(filepath, "rb") as f:
-        response = requests.post(
-            upload_url,
-            headers=headers,
-            params={"name": filename},
-            data=f
-        )
+    # Обычная загрузка
+    with open(file_path, 'rb') as f:
+        headers = {
+            'Authorization': f'token {GITHUB_TOKEN}',
+            'Content-Type': 'application/zip',  # или csv
+        }
+        response = requests.post(upload_url, data=f, headers=headers)
+
     if response.status_code != 201:
-        raise RuntimeError(f"Ошибка загрузки файла: {response.status_code} {response.text}")
+        raise RuntimeError(f"Ошибка загрузки: {response.status_code} {response.text}")
 
 
 def upload():

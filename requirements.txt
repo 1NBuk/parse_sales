@@ -12,7 +12,7 @@ requests==2.31.0
 
 # Для работы с Excel (если понадобится)
 openpyxl==3.1.2
-
+webdriver-manager
 # Для планирования задач (если нужно)
 schedule==1.2.0
 beautifulsoup4
