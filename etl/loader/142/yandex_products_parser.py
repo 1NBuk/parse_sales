@@ -16,14 +16,14 @@ from rapidfuzz import fuzz
 
 # --------------------------------------------------
 BASE_URL = "https://yandex.ru/search/?text={query}&lr=120373&products_mode=1"
-OUTPUT_PATH = r"C:\Users\User\PycharmProjects\parse_sales\data\raw\yandex_products_prices.csv"
+OUTPUT_PATH = r"/data/raw/yandex_products_prices.csv"
 
 MIN_FUZZ_SCORE = 55
 MAX_WAIT = 30
 
 products = [
     "Яйцо куриное Окское С1 10шт",
-    "Батон Коломенский Нарезной 200г",
+    "Батон Нарезной 200г",
     "Молоко Простоквашино отборное пастеризованное 3.4-4.5%",
     "Сахар кусковой белый 1кг",
     "Соль пищевая 1кг",

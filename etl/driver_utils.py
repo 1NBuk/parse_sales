@@ -1,6 +1,7 @@
 # driver_utils.py
 import random
 import time
+import os
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
@@ -9,9 +10,14 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 def create_driver(use_uc=False, headless=False, disable_bot_detection=True, random_user_agent=False):
     """
-    Создает драйвер с настройками для обхода обнаружения
+    Создает драйвер с настройками для обхода обнаружения и поддержкой прокси
     """
     try:
+        # Получаем прокси из переменных окружения
+        proxy_url = os.getenv('PROXY_URL')
+        if proxy_url:
+            print(f"Используется прокси: {proxy_url}")
+
         if use_uc:
             # Используем undetected_chromedriver
             import undetected_chromedriver as uc
@@ -28,8 +34,6 @@ def create_driver(use_uc=False, headless=False, disable_bot_detection=True, rand
             options.add_argument("start-maximized")
             options.add_argument("--disable-infobars")
             options.add_argument("--disable-notifications")
-
-            # Отключаем автоматическое управление браузером
             options.add_argument("--disable-browser-side-navigation")
 
             # Случайный User-Agent
@@ -42,6 +46,10 @@ def create_driver(use_uc=False, headless=False, disable_bot_detection=True, rand
                     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
                 ]
                 options.add_argument(f"user-agent={random.choice(user_agents)}")
+
+            # 🔧 ПРОКСИ ДЛЯ UC
+            if proxy_url:
+                options.add_argument(f'--proxy-server={proxy_url}')
 
             # Режим headless
             if headless:
@@ -75,8 +83,6 @@ def create_driver(use_uc=False, headless=False, disable_bot_detection=True, rand
             options.add_argument("start-maximized")
             options.add_argument("--disable-infobars")
             options.add_argument("--disable-notifications")
-
-            # Отключаем автоматическое управление браузером
             options.add_argument("--disable-browser-side-navigation")
 
             # Случайный User-Agent
@@ -89,6 +95,10 @@ def create_driver(use_uc=False, headless=False, disable_bot_detection=True, rand
                     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
                 ]
                 options.add_argument(f"user-agent={random.choice(user_agents)}")
+
+            # 🔧 ПРОКСИ ДЛЯ ОБЫЧНОГО CHROME
+            if proxy_url:
+                options.add_argument(f'--proxy-server={proxy_url}')
 
             # Режим headless
             if headless:
@@ -108,6 +118,7 @@ def create_driver(use_uc=False, headless=False, disable_bot_detection=True, rand
         if not use_uc:  # UC уже делает это автоматически
             driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
 
+        print("Драйвер успешно создан")
         return driver
 
     except Exception as e:
@@ -118,8 +129,16 @@ def create_driver(use_uc=False, headless=False, disable_bot_detection=True, rand
             options = Options()
             options.add_argument("--disable-blink-features=AutomationControlled")
             options.add_argument("--no-sandbox")
+            options.add_argument("--disable-dev-shm-usage")
+
+            # Минимальный прокси
+            proxy_url = os.getenv('PROXY_URL')
+            if proxy_url:
+                options.add_argument(f'--proxy-server={proxy_url}')
+
             service = Service(ChromeDriverManager().install())
             driver = webdriver.Chrome(service=service, options=options)
+            print("Драйвер создан с минимальными настройками")
             return driver
         except Exception as e2:
             print(f"Критическая ошибка: {e2}")
