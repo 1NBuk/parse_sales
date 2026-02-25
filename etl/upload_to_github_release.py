@@ -78,6 +78,10 @@ def upload_asset(upload_url, file_path, filename):
 
 
 def upload():
+    global LOCAL_FILE
+    if not os.path.exists(LOCAL_FILE) or os.path.getsize(LOCAL_FILE) < 100:  # меньше 100 байт = пустой
+        print(f" Файл {LOCAL_FILE} пустой, пропускаем загрузку")
+        return
     if not os.path.exists(LOCAL_FILE):
         print(f"Файл не найден: {LOCAL_FILE}, пропуск загрузки")
         return

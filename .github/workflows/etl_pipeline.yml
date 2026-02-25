@@ -64,7 +64,7 @@ jobs:
           Xvfb :99 -screen 0 1920x1080x24 &
           export DISPLAY=:99
           sleep 5
-          curl -s "https://api.proxyscrape.com/v2/?request=get&protocol=http&timeout=5000&country=all" | head -1 > proxy.txt
+          curl -s "http://proxy.yoshouseproxy.com:8080/api/v1/get/http" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+:[0-9]+$' | head -1 > proxy.txt
           export PROXY_URL=$(cat proxy.txt)
           echo "Новый прокси: $PROXY_URL"
 

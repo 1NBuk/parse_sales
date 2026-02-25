@@ -102,7 +102,7 @@ def create_driver(use_uc=False, headless=False, disable_bot_detection=True, rand
 
             # Режим headless
             if headless:
-                options.headless = True
+                options.add_argument('--headless')
 
             # Инициализация драйвера
             service = Service(ChromeDriverManager().install())
