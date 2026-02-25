@@ -52,7 +52,13 @@ def delete_existing_asset(upload_url, filename):
 
 
 def upload_asset(upload_url, file_path, filename):
-    # Удаляем старый ассет
+    # Проверка размера файла
+    if not os.path.exists(file_path) or os.path.getsize(file_path) == 0:
+        raise RuntimeError(f"Файл {file_path} пустой или не существует")
+
+    if os.path.getsize(file_path) > 100 * 1024 * 1024:  # 100MB
+        raise RuntimeError(f"Файл слишком большой: {os.path.getsize(file_path)}")
+
     headers = {'Authorization': f'token {GITHUB_TOKEN}'}
     delete_url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/releases/assets/{filename}"
     try:

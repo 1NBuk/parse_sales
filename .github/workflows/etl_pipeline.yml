@@ -63,6 +63,11 @@ jobs:
           echo "Запуск ETL pipeline: $(date)"
           Xvfb :99 -screen 0 1920x1080x24 &
           export DISPLAY=:99
-          sleep 5  # увеличено время перед запуском
-          python etl/run_pipeline.py
+          sleep 5
+          curl -s "https://api.proxyscrape.com/v2/?request=get&protocol=http&timeout=5000&country=all" | head -1 > proxy.txt
+          export PROXY_URL=$(cat proxy.txt)
+          echo "Новый прокси: $PROXY_URL"
+
+          python etl/run_pipeline.py || (echo "Без прокси"; unset PROXY_URL; python etl/run_pipeline.py)
+      
       
