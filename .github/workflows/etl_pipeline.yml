@@ -1,86 +1,86 @@
-name: Daily ETL Pipeline
+# name: Daily ETL Pipeline
 
-on:
-  schedule:
-    # 14:00 МСК = 11:00 UTC
-    - cron: "0 11 * * *"
-  workflow_dispatch:
+# on:
+#   schedule:
+#     # 14:00 МСК = 11:00 UTC
+#     - cron: "0 11 * * *"
+#   workflow_dispatch:
 
-permissions:
-  contents: write
+# permissions:
+#   contents: write
 
-jobs:
-  run_pipeline:
-    runs-on: ubuntu-22.04
+# jobs:
+#   run_pipeline:
+#     runs-on: ubuntu-22.04
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+#     steps:
+#       - name: Checkout repository
+#         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
+#       - name: Set up Python
+#         uses: actions/setup-python@v5
+#         with:
+#           python-version: "3.11"
 
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            xvfb unzip wget curl gnupg apt-transport-https \
-            libxi6 libgconf-2-4 libnss3 libxss1 \
-            libatk-bridge2.0-0 libgtk-3-0 fonts-liberation \
-            libasound2
+#       - name: Install system dependencies
+#         run: |
+#           sudo apt-get update
+#           sudo apt-get install -y \
+#             xvfb unzip wget curl gnupg apt-transport-https \
+#             libxi6 libgconf-2-4 libnss3 libxss1 \
+#             libatk-bridge2.0-0 libgtk-3-0 fonts-liberation \
+#             libasound2
 
-      - name: Install Google Chrome stable
-        run: |
-          wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
-          sudo sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list'
-          sudo apt-get update
-          sudo apt-get install -y google-chrome-stable
+#       - name: Install Google Chrome stable
+#         run: |
+#           wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+#           sudo sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list'
+#           sudo apt-get update
+#           sudo apt-get install -y google-chrome-stable
 
-      - name: Install Python dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install \
-            selenium==4.15.2 \
-            undetected-chromedriver==3.5.3 \
-            webdriver-manager==4.0.2 \
-            rapidfuzz==3.6.1 \
-            pandas==2.1.4 \
-            numpy==1.26.2 \
-            requests
-      - name: Создать необходимые директории
-        run: |
-          mkdir -p data/raw
-          mkdir -p data/processed
+#       - name: Install Python dependencies
+#         run: |
+#           python -m pip install --upgrade pip
+#           pip install \
+#             selenium==4.15.2 \
+#             undetected-chromedriver==3.5.3 \
+#             webdriver-manager==4.0.2 \
+#             rapidfuzz==3.6.1 \
+#             pandas==2.1.4 \
+#             numpy==1.26.2 \
+#             requests
+#       - name: Создать необходимые директории
+#         run: |
+#           mkdir -p data/raw
+#           mkdir -p data/processed
 
-      - name: Run ETL Pipeline
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PROXY_URL: ${{ secrets.PROXY_URL }}
-          PYTHONPATH: ${{ github.workspace }}
-        run: |
-          echo "Запуск ETL pipeline: $(date)"
+#       - name: Run ETL Pipeline
+#         env:
+#           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#           PROXY_URL: ${{ secrets.PROXY_URL }}
+#           PYTHONPATH: ${{ github.workspace }}
+#         run: |
+#           echo "Запуск ETL pipeline: $(date)"
 
-          Xvfb :99 -screen 0 1920x1080x24 &
-          export DISPLAY=:99
-          sleep 5
+#           Xvfb :99 -screen 0 1920x1080x24 &
+#           export DISPLAY=:99
+#           sleep 5
 
-          echo "Proxy from secrets: $PROXY_URL"
+#           echo "Proxy from secrets: $PROXY_URL"
 
-          # пробуем получить новый прокси
-          NEW_PROXY=$(curl -s "http://proxy.yoshouseproxy.com:8080/api/v1/get/http" \
-            | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+:[0-9]+' \
-            | head -1)
+#           # пробуем получить новый прокси
+#           NEW_PROXY=$(curl -s "http://proxy.yoshouseproxy.com:8080/api/v1/get/http" \
+#             | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+:[0-9]+' \
+#             | head -1)
 
-          # если получили — заменяем
-          if [ ! -z "$NEW_PROXY" ]; then
-            export PROXY_URL="http://$NEW_PROXY"
-            echo "Получен новый прокси: $PROXY_URL"
-          else
-            echo "API прокси не дал результат — используем secret proxy"
-          fi
+#           # если получили — заменяем
+#           if [ ! -z "$NEW_PROXY" ]; then
+#             export PROXY_URL="http://$NEW_PROXY"
+#             echo "Получен новый прокси: $PROXY_URL"
+#           else
+#             echo "API прокси не дал результат — используем secret proxy"
+#           fi
 
-          python etl/run_pipeline.py
+#           python etl/run_pipeline.py
       
       
