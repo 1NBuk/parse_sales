@@ -1,72 +1,60 @@
 import os
 from datetime import datetime
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.oauth2.credentials import Credentials
+from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
-SCOPES = ["https://www.googleapis.com/auth/drive.file"]
-
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-CREDENTIALS_FILE = os.path.join(BASE_DIR, "credentials.json")
-TOKEN_FILE = os.path.join(BASE_DIR, "token.json")
-
-LOCAL_FILE = os.path.join(
-    BASE_DIR, "..", "data", "processed", "clean_prices.csv"
-)
-
+# --------------------------
+# Настройки
+# --------------------------
+# Папка на Google Drive, куда загружать файлы
 FOLDER_ID = "16ytw-ZV05jveJksJjY4bwfuoK_OxXiAa"
 
+# Локальный файл, который нужно загрузить
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+LOCAL_FILE = os.path.join(BASE_DIR, "..", "data", "processed", "clean_prices.csv")
+SERVICE_ACCOUNT_FILE = r"C:\Users\User\PycharmProjects\parse_sales\etl\gdrive_key.json"
+SCOPES = ["https://www.googleapis.com/auth/drive"]
 
-def get_credentials():
-    creds = None
+# --------------------------
+# Проверка наличия файла
+# --------------------------
+if not os.path.exists(LOCAL_FILE):
+    raise FileNotFoundError(f"Файл не найден: {LOCAL_FILE}")
 
-    if os.path.exists(TOKEN_FILE):
-        creds = Credentials.from_authorized_user_file(
-            TOKEN_FILE, SCOPES
-        )
+# --------------------------
+# Авторизация через сервисный аккаунт
+# --------------------------
+creds = Credentials.from_service_account_file(
+    SERVICE_ACCOUNT_FILE,
+    scopes=SCOPES
+)
 
-    if not creds or not creds.valid:
-        flow = InstalledAppFlow.from_client_secrets_file(
-            CREDENTIALS_FILE, SCOPES
-        )
-        creds = flow.run_local_server(port=0)
+service = build("drive", "v3", credentials=creds)
 
-        with open(TOKEN_FILE, "w") as token:
-            token.write(creds.to_json())
+# --------------------------
+# Подготовка имени файла с датой
+# --------------------------
+date_str = datetime.now().strftime("%Y-%m-%d")
+filename = f"clean_prices_{date_str}.csv"
 
-    return creds
+# --------------------------
+# Метаданные файла
+# --------------------------
+file_metadata = {
+    "name": filename,
+    "parents": [FOLDER_ID]
+}
 
+media = MediaFileUpload(LOCAL_FILE, mimetype="text/csv")
 
-def upload():
-    if not os.path.exists(LOCAL_FILE):
-        raise FileNotFoundError(f"Файл не найден: {LOCAL_FILE}")
+# --------------------------
+# Загрузка файла
+# --------------------------
+file = service.files().create(
+    body=file_metadata,
+    media_body=media,
+    fields="id"
+).execute()
 
-    creds = get_credentials()
-    service = build("drive", "v3", credentials=creds)
-
-    date_str = datetime.now().strftime("%Y-%m-%d")
-    filename = f"clean_prices_{date_str}.csv"
-
-    file_metadata = {
-        "name": filename,
-        "parents": [FOLDER_ID]
-    }
-
-    media = MediaFileUpload(
-        LOCAL_FILE,
-        mimetype="text/csv"
-    )
-
-    file = service.files().create(
-        body=file_metadata,
-        media_body=media,
-        fields="id"
-    ).execute()
-
-    print(f"Файл загружен, id={file['id']}")
-
-
-if __name__ == "__main__":
-    upload()
+print(f"Файл загружен в Google Drive, id={file['id']}")

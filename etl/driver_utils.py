@@ -47,14 +47,10 @@ def create_driver(use_uc=False, headless=False, disable_bot_detection=True, rand
             if headless:
                 options.add_argument("--headless")
 
-            # Инициализация UC
             driver = uc.Chrome(
                 options=options,
                 use_subprocess=True,
-                driver_executable_path=None,
-                browser_executable_path=None,
-                version_main=None,
-                suppress_welcome=True
+                version_main=145
             )
 
         else:

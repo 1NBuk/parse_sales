@@ -6,8 +6,9 @@ import pandas as pd
 from datetime import datetime
 from rapidfuzz import fuzz
 from urllib.parse import quote
-
-sys.path.append(os.path.dirname(__file__))
+sys.stdout.reconfigure(encoding="utf-8")
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
+sys.path.insert(0, BASE_DIR)
 
 try:
     from etl.driver_utils import create_driver
@@ -64,7 +65,12 @@ def main():
         for product in PRODUCTS:
             print(f"Ищем: {product}")
             url = f"https://lenta.com/search/{quote(product)}/"
-            driver.get(url)
+            try:
+                driver.get(url)
+            except:
+                print("Перезагрузка страницы...")
+                driver.execute_script("window.stop();")
+                driver.get(url)
 
             try:
                 wait.until(
@@ -98,7 +104,11 @@ def main():
                     })
                     continue
 
-                price = clean_price(best.text)
+                try:
+                    price_el = best.find_element(By.CSS_SELECTOR, ".main-price")
+                    price = clean_price(price_el.text)
+                except:
+                    price = None
                 unit_match = re.search(r"(\d+\s?(г|кг|мл|л|шт))", best.text)
                 unit = unit_match.group(1) if unit_match else "1 кг"
 

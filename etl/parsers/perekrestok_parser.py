@@ -1,3 +1,9 @@
+import sys
+import os
+sys.stdout.reconfigure(encoding="utf-8")
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
+sys.path.insert(0, BASE_DIR)
+
 import time
 import pandas as pd
 import re
@@ -9,7 +15,6 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-import os
 from rapidfuzz import fuzz
 
 # Импортируем webdriver-manager для автоматического управления драйверами
@@ -17,6 +22,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 products = [
     "Яйцо куриное Окское отборное С1 10шт",
+    "Яйцо куриное Окское С1",
     "Батон Коломенский Нарезной 200г",
     "Молоко Простоквашино отборное пастеризованное 3.4-4.5%",
     "Сахар кусковой белый 1кг",
@@ -95,7 +101,7 @@ try:
 
         try:
             driver.get(url)
-            time.sleep(2)  # Даем время на загрузку
+            time.sleep(3)  # Даем время на загрузку
 
             # Проверяем, есть ли результаты поиска
             try:
@@ -111,7 +117,7 @@ try:
                     "price": None,
                     "date": today
                 })
-                time.sleep(1)
+                time.sleep(2)
                 continue
 
             cards = driver.find_elements(By.CSS_SELECTOR, ".product-card")
@@ -197,9 +203,9 @@ try:
                     except:
                         price = f"{price} ₽"
 
-                    print(f"  ✓ Перекресток — {name_only} — {price} — {unit_from_site} (сходство: {max_score}%)")
+                    print(f"Перекресток — {name_only} — {price} — {unit_from_site} (сходство: {max_score}%)")
                 else:
-                    print(f"  ✗ Перекресток — {name_only} — цена не найдена (сходство: {max_score}%)")
+                    print(f"Перекресток — {name_only} — цена не найдена (сходство: {max_score}%)")
                     price = None
             else:
                 print(f"  ✗ Перекресток — {name_only} — подходящий товар не найден (лучшее сходство: {max_score}%)")

@@ -2,12 +2,13 @@ import time
 import re
 import os
 import sys
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
+sys.path.insert(0, BASE_DIR)
 import pandas as pd
 from datetime import datetime
 from urllib.parse import quote
 from rapidfuzz import fuzz
 
-sys.path.append(os.path.dirname(__file__))
 
 try:
     from etl.driver_utils import create_driver

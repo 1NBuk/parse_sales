@@ -5,8 +5,8 @@ import re
 import os
 import sys
 
-# Добавляем путь к utils в sys.path
-sys.path.append(os.path.dirname(__file__))
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
+sys.path.insert(0, BASE_DIR)
 
 try:
     from etl.driver_utils import create_driver
@@ -72,7 +72,7 @@ def extract_price(card, driver):
             raw = elem.text.strip()
             m = re.search(r"(\d+[.,]?\d*)", raw)
             if m:
-                return m.group(1).replace(",", ".") + " ₽"
+                return float(m.group(1).replace(",", "."))
         except:
             pass
 

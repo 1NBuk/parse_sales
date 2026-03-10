@@ -12,8 +12,9 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
-
-sys.path.append(os.path.dirname(__file__))
+sys.stdout.reconfigure(encoding="utf-8")
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
+sys.path.insert(0, BASE_DIR)
 from etl.driver_utils import create_driver
 
 
@@ -194,7 +195,7 @@ def main():
                 print(f"{product} → {price} ({title})")
             else:
                 title = price = unit = None
-                print(f"[!] {product} — не найден")
+                print(f"{product} — не найден")
 
             results.append({
                 "store": "Магнит",

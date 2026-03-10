@@ -1,3 +1,7 @@
+import sys
+import os
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
+sys.path.insert(0, BASE_DIR)
 import time
 import random
 import re
@@ -16,7 +20,8 @@ from rapidfuzz import fuzz
 
 # --------------------------------------------------
 BASE_URL = "https://yandex.ru/search/?text={query}&lr=120373&products_mode=1"
-OUTPUT_PATH = r"C:\Users\User\PycharmProjects\parse_sales\data\raw\yandex_products_prices.csv"
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
+OUTPUT_PATH = os.path.join(BASE_DIR, "data", "raw", "yandex_products_prices.csv")
 
 MIN_FUZZ_SCORE = 55
 MAX_WAIT = 30
@@ -121,7 +126,7 @@ def main():
 
     try:
         for query in products:
-            print(f"\n🔍 Поиск: {query}")
+            print(f"\nПоиск: {query}")
             url = BASE_URL.format(query=quote_plus(query))
             driver.get(url)
             pause(1.5, 2.5)
@@ -131,7 +136,7 @@ def main():
             cards, card_type = find_cards(driver, wait)
 
             if not cards:
-                print(f"⚠️  Карточки не найдены для {query}")
+                print(f"Карточки не найдены для {query}")
                 results.append({"store": None, "product": query, "unit": None, "price": None, "date": today})
                 continue
 
@@ -165,7 +170,7 @@ def main():
         writer.writeheader()
         writer.writerows(results)
 
-    print("\n✅ Готово")
+    print("\nГотово")
     print(f"Сохранено записей: {len(results)}")
     print(f"Файл: {OUTPUT_PATH}")
 
