@@ -23,3 +23,8 @@ google-auth
 google-auth-httplib2
 google-auth-oauthlib
 psycopg2
+uvicorn
+fastapi
+pydantic
+joblib
+scikit-learn

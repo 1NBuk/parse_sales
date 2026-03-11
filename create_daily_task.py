@@ -10,7 +10,7 @@ command = [
     "schtasks",
     "/create",
     "/sc", "daily",
-    "/st", "23:53",
+    "/st", "11:00",
     "/tn", task_name,
     "/tr", f'{python_path} {script_path}',
     "/f",
