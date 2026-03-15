@@ -10,11 +10,14 @@ command = [
     "schtasks",
     "/create",
     "/sc", "daily",
-    "/st", "11:00",
+    "/st", "14:33",
     "/tn", task_name,
-    "/tr", f'{python_path} {script_path}',
-    "/f",
-    "/rl", "HIGHEST"
+    "/tr", f'cmd /c "{python_path} {script_path}"',
+    "/ru", os.getlogin(),
+    "/f"
 ]
 
-subprocess.run(command)
+result = subprocess.run(command, capture_output=True, text=True, shell=True)
+
+print(result.stdout)
+print(result.stderr)

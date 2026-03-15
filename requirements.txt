@@ -9,11 +9,8 @@ pandas==2.1.1
 
 # HTTP-запросы
 requests==2.31.0
-
-# Для работы с Excel (если понадобится)
 openpyxl==3.1.2
-
-# Для планирования задач (если нужно)
+holidays
 schedule==1.2.0
 beautifulsoup4
 lxml
