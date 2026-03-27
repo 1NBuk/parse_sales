@@ -256,8 +256,6 @@ def distribute_data():
         log("Заполнение prices_history")
         load_prices_history(cur)
 
-        log("Очистка prices_raw")
-        cur.execute("TRUNCATE prices_raw")
 
         conn.commit()
 
