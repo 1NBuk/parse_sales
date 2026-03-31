@@ -3,11 +3,9 @@ selenium==4.15.0
 
 # Быстрое сравнение строк для fuzzy search
 rapidfuzz==2.15.1
-
-# Работа с таблицами и CSV
+selenium
 pandas==2.1.1
-
-# HTTP-запросы
+psycopg2-binary
 requests==2.31.0
 openpyxl==3.1.2
 holidays
@@ -25,3 +23,4 @@ fastapi
 pydantic
 joblib
 scikit-learn
+catboost

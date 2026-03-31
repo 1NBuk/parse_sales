@@ -1,26 +1,25 @@
 import subprocess
 import os
 
+
 task_name = "PriceETLPipeline"
 
 python_path = r"C:\Users\User\PycharmProjects\parse_sales\venv\Scripts\python.exe"
 script_path = r"C:\Users\User\PycharmProjects\parse_sales\etl\run_pipeline.py"
 
-run_command = f'cmd /c "{python_path} {script_path}"'
+run_command = f'"{python_path}" "{script_path}"'
 
-# ежедневный запуск
 daily = [
     "schtasks",
     "/create",
     "/tn", task_name,
     "/tr", run_command,
     "/sc", "daily",
-    "/st", "12:07",
+    "/st", "12:00",
     "/ru", os.getlogin(),
     "/f"
 ]
 
-# запуск при старте компьютера
 startup = [
     "schtasks",
     "/create",
@@ -34,4 +33,4 @@ startup = [
 subprocess.run(daily, shell=True)
 subprocess.run(startup, shell=True)
 
-print("Tasks created")
+print("Tasks created successfully")
