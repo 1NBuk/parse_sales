@@ -5,6 +5,7 @@ import psycopg2
 from catboost import CatBoostRegressor
 import os
 import sys
+import tempfile
 
 DB_CONFIG = {
     "host": "localhost",
@@ -14,56 +15,139 @@ DB_CONFIG = {
 }
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.append(BASE_DIR)
 MODEL_PATH = os.path.join(BASE_DIR, "ml", "catboost_price_model.cbm")
 
+from etl.upload_to_postgres import upload
 conn = psycopg2.connect(**DB_CONFIG)
 def build_features(df):
     df = df.sort_values(["product_id", "store_id", "date"])
-
     group = df.groupby(["product_id", "store_id"])
-
     df["price_lag_1"] = group["price"].shift(1)
     df["price_lag_3"] = group["price"].shift(3)
     df["price_lag_7"] = group["price"].shift(7)
     df["price_lag_14"] = group["price"].shift(14)
-
     df["price_mean_7"] = group["price"].transform(lambda x: x.rolling(7).mean())
     df["price_std_7"] = group["price"].transform(lambda x: x.rolling(7).std())
-
     df["price_diff_1"] = df["price"] - df["price_lag_1"]
-
     df = df.dropna()
     return df
 
-def forecast_future(df, model, days=14):
-    df = df.copy()
 
+def forecast_future(df, model, days=14):
+    df = df.sort_values("date").copy()
     future_rows = []
 
+    # Категориальные признаки
+    cat_features = ["product_id", "store_id", "brand_id", "day_of_week",
+                    "week_of_year", "month", "is_weekend", "is_holiday"]
+
+    # Числовые признаки
+    num_features = ["quantity", "usd_rub", "eur_rub", "oil_price", "temperature", "precipitation",
+                    "price_lag_1", "price_lag_3", "price_lag_7", "price_lag_14",
+                    "price_mean_7", "price_std_7", "price_diff_1"]
+
+    # Порядок колонок, который ожидает модель
+    feature_cols = ["quantity"] + cat_features + num_features[1:]  # num_features[1:] без "quantity"
+
     for i in range(days):
-        df_feat = build_features(df.copy())
+        last_rows = df.tail(14)
+        new_row = last_rows.iloc[-1:].copy()
 
-        last_row = df_feat.iloc[-1:].copy()
+        # =======================
+        # Лаги
+        # =======================
+        new_row["price_lag_1"] = last_rows["price"].iloc[-1] if len(last_rows) >= 1 else 0
+        new_row["price_lag_3"] = last_rows["price"].iloc[-3] if len(last_rows) >= 3 else last_rows["price"].mean() if len(last_rows) > 0 else 0
+        new_row["price_lag_7"] = last_rows["price"].iloc[-7] if len(last_rows) >= 7 else last_rows["price"].mean() if len(last_rows) > 0 else 0
+        new_row["price_lag_14"] = last_rows["price"].iloc[-14] if len(last_rows) >= 14 else last_rows["price"].mean() if len(last_rows) > 0 else 0
+        new_row["price_mean_7"] = last_rows["price"].tail(7).mean() if len(last_rows) >= 7 else last_rows["price"].mean() if len(last_rows) > 0 else 0
+        new_row["price_std_7"] = last_rows["price"].tail(7).std() or 0 if len(last_rows) >= 7 else 0
+        new_row["price_diff_1"] = new_row["price_lag_1"].iloc[0] - last_rows["price"].iloc[-2] if len(last_rows) > 1 else 0
 
-        X = last_row.drop(columns=["price", "date"])
+        # Количество
+        if len(last_rows) >= 7:
+            new_row["quantity"] = last_rows["quantity"].tail(7).mean()
+        elif len(last_rows) > 0:
+            new_row["quantity"] = last_rows["quantity"].mean()
+        else:
+            new_row["quantity"] = 0
 
-        pred = model.predict(X)[0]
+        # is_weekend / is_holiday
+        for col in ["is_weekend", "is_holiday"]:
+            if col in new_row.columns:
+                new_row[col] = new_row[col].fillna(False).apply(lambda x: "1" if x else "0")
 
-        new_row = df.iloc[-1:].copy()
-        new_row["date"] = new_row["date"] + pd.Timedelta(days=1)
-        new_row["price"] = pred
+        # =======================
+        # Дата
+        # =======================
+        new_row["date"] = new_row["date"].iloc[0] + pd.Timedelta(days=1)
+
+        # =======================
+        # Формируем X в правильном порядке
+        # =======================
+        X = pd.DataFrame()
+
+        # Сначала quantity
+        X["quantity"] = new_row["quantity"]
+
+        # Категориальные признаки
+        for col in cat_features:
+            X[col] = new_row[col].astype(str).replace('nan', 'unknown')
+
+        # Остальные числовые признаки
+        for col in num_features:
+            if col != "quantity":
+                X[col] = pd.to_numeric(new_row[col], errors='coerce').fillna(0).astype(float)
+
+        # =======================
+        # Прогноз
+        # =======================
+        try:
+            pred = model.predict(X)[0]
+            new_row["price"] = pred
+        except Exception as e:
+            st.error(f"Ошибка при прогнозе: {e}")
+            st.write(X)
+            raise e
 
         df = pd.concat([df, new_row], ignore_index=True)
-
         future_rows.append(new_row)
 
-    future_df = pd.concat(future_rows, ignore_index=True)
+    future_df = pd.concat(future_rows, ignore_index=True) if future_rows else pd.DataFrame()
     return future_df
+REQUIRED_COLUMNS = [
+    "store", "product_clean", "brand",
+    "price", "quantity", "unit_normalized", "date"
+]
 
+def validate_csv(df):
+    # 1. Проверка колонок
+    missing = set(REQUIRED_COLUMNS) - set(df.columns)
+    if missing:
+        raise ValueError(f"Нет колонок: {missing}")
+
+    # 2. Типы
+    df["price"] = pd.to_numeric(df["price"], errors="coerce")
+    df["quantity"] = pd.to_numeric(df["quantity"], errors="coerce")
+    df["date"] = pd.to_datetime(df["date"], errors="coerce")
+
+    # 3. NaN check
+    if df[["price", "quantity", "date"]].isna().any().any():
+        raise ValueError("Есть некорректные значения (NaN)")
+
+    # 4. Логическая проверка
+    if (df["price"] <= 0).any():
+        raise ValueError("Цена <= 0")
+
+    if (df["quantity"] <= 0).any():
+        raise ValueError("Количество <= 0")
+
+    return df
 st.set_page_config(page_title="Price Forecast App", layout="wide")
 
 st.title("Прогнозирование цен на продукты")
-st.markdown("Проект создан: **Ваше Имя**")
+st.markdown("Проект создан: **Букарёвой Анастасией**")
 
 # Навигация между страницами
 page = st.sidebar.selectbox(
@@ -71,18 +155,37 @@ page = st.sidebar.selectbox(
     ["Главная", "Таблицы", "Графики", "Просмотр предсказаний", "Добавление данных", "Запуск парсингов"]
 )
 
-# ====================== Главная ======================
 if page == "Главная":
-    st.header("Добро пожаловать!")
-    st.write("""
-    Это Streamlit приложение для анализа и прогнозирования цен на продукты.
-    Здесь вы можете:
-    - Просматривать таблицы данных
-    - Строить графики
-    - Просматривать прогнозы модели
-    - Добавлять свои данные
-    - Запускать процесс ETL и парсинга
+
+    st.markdown("""
+    ---
+    # Выпускная квалификационная работа
+
+    **Тема:** «Разработка системы для анализа и прогнозирования изменения цен на товары»
+
+    **Выполнила:** студентка группы ИД22-1  
+    **Букарёва Анастасия Павловна**
+
+    ---
     """)
+
+    st.markdown("""
+    Это Streamlit приложение предназначено для:
+
+    - Анализа исторических данных по ценам на товары  
+    - Прогнозирования изменения цен с использованием модели CatBoost  
+    - Просмотра и фильтрации данных по продуктам, брендам и магазинам  
+    - Добавления собственных данных в базу  
+    - Автоматизации процесса ETL и загрузки внешних факторов (курсы валют, цена нефти, погода)  
+
+    **Навигация:** используйте боковую панель для перехода между страницами приложения.
+
+    *Совет:* начните с раздела 'Таблицы', чтобы изучить данные, затем переходите к 'Графикам' и 'Просмотру предсказаний'.
+    """)
+    st.image(
+        "https://avatars.mds.yandex.net/get-altay/219656/2a00000186401a00280b69bde2addfd47339/orig",
+        use_container_width=True
+    )
 
 elif page == "Таблицы":
     st.header("Просмотр таблиц")
@@ -218,7 +321,7 @@ elif page == "Графики":
     st.subheader("Данные")
     st.dataframe(df_filtered.head(100))
 
-elif page == "Просмотр предсказаний":
+if page == "Просмотр предсказаний":
     st.header("Прогноз цен (будущее)")
 
     model = CatBoostRegressor()
@@ -229,23 +332,22 @@ elif page == "Просмотр предсказаний":
         ph.date,
         ph.price,
         ph.quantity,
-
         p.id as product_id,
+        p.name as product_name,
         s.id as store_id,
+        s.name as store_name,
         b.id as brand_id,
-
+        b.name as brand_name,
         c.day_of_week,
         c.week_of_year,
         c.month,
         c.is_weekend,
         c.is_holiday,
-
         ef.usd_rub,
         ef.eur_rub,
         ef.oil_price,
         ef.temperature,
         ef.precipitation
-
     FROM prices_history ph
     JOIN products p ON ph.product_id = p.id
     JOIN brands b ON p.brand_id = b.id
@@ -253,40 +355,57 @@ elif page == "Просмотр предсказаний":
     JOIN calendar c ON ph.date = c.date
     LEFT JOIN external_factors ef ON ph.date = ef.date
     """
-
     df = pd.read_sql(query, conn)
 
-    # фильтр как в графиках
-    products = df["product_id"].unique()
-    selected_product = st.selectbox("Продукт", products)
+    # словари для маппинга (на всякий случай)
+    brand_map = {name: id for id, name in df[["brand_id","brand_name"]].drop_duplicates().values}
+    store_map = {name: id for id, name in df[["store_id","store_name"]].drop_duplicates().values}
+    product_map = {name: id for id, name in df[["product_id","product_name"]].drop_duplicates().values}
 
-    df = df[df["product_id"] == selected_product]
+    # фильтры
+    products = df["product_name"].unique()
+    selected_product = st.sidebar.selectbox("Продукт", products)
+    df = df[df["product_name"] == selected_product]
+
+    brands = df["brand_name"].unique()
+    selected_brand = st.sidebar.multiselect("Бренд", brands)
+    if selected_brand:
+        df = df[df["brand_name"].isin(selected_brand)]
+
+    stores = df["store_name"].unique()
+    selected_store = st.sidebar.multiselect("Магазин", stores)
+    if selected_store:
+        df = df[df["store_name"].isin(selected_store)]
+
+    date_range = st.sidebar.date_input("Период", [])
+    if len(date_range) == 2:
+        df = df[(df["date"] >= pd.to_datetime(date_range[0])) & (df["date"] <= pd.to_datetime(date_range[1]))]
 
     df = df.sort_values("date")
 
     st.subheader("Исторические данные")
     st.line_chart(df.set_index("date")["price"])
 
-    # горизонт прогноза
     days = st.slider("Прогноз на дней", 1, 30, 7)
 
     if st.button("Спрогнозировать"):
-        future_df = forecast_future(df, model, days)
+        if df.empty:
+            st.warning("Нет данных для выбранных фильтров!")
+        else:
+            future_df = forecast_future(df, model, days)
 
-        # объединяем
-        df["type"] = "history"
-        future_df["type"] = "forecast"
+            df["type"] = "history"
+            future_df["type"] = "forecast"
+            full_df = pd.concat([df, future_df], ignore_index=True)
 
-        full_df = pd.concat([df, future_df])
+            st.subheader("Факт + Прогноз")
+            st.line_chart(full_df.set_index("date")["price"])
 
-        st.subheader("Факт + Прогноз")
+            st.subheader("Таблица прогноза")
+            st.dataframe(future_df[["date", "price"]])
 
-        st.line_chart(full_df.set_index("date")["price"])
 
-        st.subheader("Таблица прогноза")
-        st.dataframe(future_df[["date", "price"]])
 
-# ====================== Добавление данных ======================
 elif page == "Добавление данных":
     st.header("Добавление своих данных")
     uploaded_file = st.file_uploader("Выберите CSV файл", type=["csv"])
@@ -295,8 +414,14 @@ elif page == "Добавление данных":
         st.write("Предпросмотр данных:")
         st.dataframe(df_new.head())
         if st.button("Сохранить в БД"):
-            df_new.to_sql("prices_history", conn, if_exists="append", index=False)
-            st.success("Данные успешно добавлены!")
+            try:
+                df_new = validate_csv(df_new)
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as tmp:
+                    df_new.to_csv(tmp.name, index=False)
+                    upload(tmp.name)
+                st.success("Данные успешно загружены через pipeline!")
+            except Exception as e:
+                st.error(f"Ошибка: {e}")
 
 elif page == "Запуск парсингов":
 
@@ -459,48 +584,56 @@ elif page == "Запуск парсингов":
     # EXTERNAL FACTORS
     # =========================
     st.markdown("---")
-    st.subheader("External factors")
+    st.subheader("External factors по дате")
 
+    # Выбор даты
+    ext_date = st.date_input("Выберите дату")
+
+    # Выбор фактора
+    ext_factor = st.selectbox(
+        "Выберите фактор",
+        ["Все", "usd_rub", "eur_rub", "oil_price", "temperature", "precipitation"]
+    )
+
+    # Режим работы
     ext_mode = st.radio(
         "Режим external factors",
         ["Только посмотреть", "Добавить в БД"]
     )
 
-    if st.button("Запустить загрузку external factors"):
-        result = subprocess.run(
-            [sys.executable, EXTERNAL_SCRIPT],
-            capture_output=True,
-            text=True
-        )
+    if st.button("Загрузить external factors"):
+        # Формируем команду для скрипта
+        cmd = [sys.executable, EXTERNAL_SCRIPT, "--date", str(ext_date)]
+        if ext_factor != "Все":
+            cmd += ["--factor", ext_factor]
+
+        # Запуск скрипта
+        result = subprocess.run(cmd, capture_output=True, text=True)
 
         if result.returncode != 0:
-            st.error("Ошибка загрузки external factors")
+            st.error("Ошибка при получении external factor")
             st.text(result.stderr)
         else:
             try:
                 df_ext = pd.read_json(result.stdout)
-                st.dataframe(df_ext.head())
+                st.subheader("Результат")
+                st.dataframe(df_ext)
 
                 if ext_mode == "Добавить в БД":
-                    existing = pd.read_sql(
-                        "SELECT date FROM external_factors",
-                        conn
-                    )
-
+                    existing = pd.read_sql("SELECT date FROM external_factors", conn)
                     merged = df_ext.merge(
                         existing,
                         on="date",
                         how="left",
                         indicator=True
                     )
-
                     new_data = merged[merged["_merge"] == "left_only"].drop(columns=["_merge"])
 
                     if len(new_data) > 0:
                         new_data.to_sql("external_factors", conn, if_exists="append", index=False)
-                        st.success("External factors добавлены")
+                        st.success("External factors добавлены в БД")
                     else:
-                        st.warning("Все данные уже есть в БД")
+                        st.warning("Данные для этой даты уже есть в БД")
 
-            except:
-                st.warning("Не удалось прочитать данные external factors")
+            except Exception as e:
+                st.warning(f"Не удалось прочитать данные external factors: {e}")
