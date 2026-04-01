@@ -4,6 +4,7 @@ from datetime import datetime
 import re
 import os
 import sys
+import json
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
 sys.path.insert(0, BASE_DIR)
 
@@ -25,24 +26,26 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from rapidfuzz import fuzz
 
-# ================= НАСТРОЙКИ =================
-PRODUCTS = [
-    "Яйцо куриное Окское С1 10шт",
-    "Батон Коломенский Нарезной 200г",
-    "Молоко Простоквашино отборное",
-    "Сахар кусковой белый 1кг",
-    "Соль пищевая 1кг",
-    "Крупа гречневая Мистраль 900г",
-    "Масло Олейна подсолнечное 1л",
-    "Масло Брест-Литовск сливочное 82,5% 180г",
-    "Филе цыплят-бройлеров охлаждённое Петелинка",
-    "Чай Greenfield Golden Ceylon 100г",
-    "Картофель белый 1кг",
-    "Лук репчатый",
-    "морковь вес",
-    "Капуста белокочанная",
-    "Яблоки сезонные"
-]
+if len(sys.argv) > 1:
+    PRODUCTS = [sys.argv[1]]
+else:
+    PRODUCTS = [
+        "Яйцо куриное Окское С1 10шт",
+        "Батон Коломенский Нарезной 200г",
+        "Молоко Простоквашино отборное",
+        "Сахар кусковой белый 1кг",
+        "Соль пищевая 1кг",
+        "Крупа гречневая Мистраль 900г",
+        "Масло Олейна подсолнечное 1л",
+        "Масло Брест-Литовск сливочное 82,5% 180г",
+        "Филе цыплят-бройлеров охлаждённое Петелинка",
+        "Чай Greenfield Golden Ceylon 100г",
+        "Картофель белый 1кг",
+        "Лук репчатый",
+        "морковь вес",
+        "Капуста белокочанная",
+        "Яблоки сезонные"
+    ]
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../data/raw"))
 OUTPUT_FILE = os.path.join(BASE_DIR, "globus_prices.csv")

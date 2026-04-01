@@ -6,6 +6,7 @@ from catboost import CatBoostRegressor
 import os
 import sys
 import tempfile
+import json
 
 DB_CONFIG = {
     "host": "localhost",
@@ -502,7 +503,6 @@ elif page == "Запуск парсингов":
 
         for product in selected_products:
 
-            # 👉 теперь передаем СТРОКУ продукта, а не путь
             result = subprocess.run(
                 [sys.executable, parser_path, product],
                 capture_output=True,
@@ -515,7 +515,8 @@ elif page == "Запуск парсингов":
                 continue
 
             try:
-                df = pd.read_json(result.stdout)
+                file_path = os.path.join(BASE_DIR, "data/raw/auchan_prices.csv")
+                df = pd.read_csv(file_path)
                 all_data.append(df)
             except:
                 st.warning(f"Не удалось прочитать JSON для: {product}")

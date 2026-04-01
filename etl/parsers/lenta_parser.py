@@ -6,6 +6,8 @@ import pandas as pd
 from datetime import datetime
 from rapidfuzz import fuzz
 from urllib.parse import quote
+import json
+
 sys.stdout.reconfigure(encoding="utf-8")
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
 sys.path.insert(0, BASE_DIR)
@@ -26,24 +28,26 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-
-PRODUCTS = [
-    "Яйцо куриное Окское С1 10шт",
-    "Батон Коломенский Нарезной 200г",
-    "Молоко Простоквашино отборное пастеризованное",
-    "Сахар кусковой белый 1кг",
-    "Соль пищевая 1кг",
-    "Крупа гречневая Мистраль 900г",
-    "Масло Олейна подсолнечное 1л",
-    "Масло Брест-Литовск сливочное 82,5% 180г",
-    "Филе грудки цыпленка Петелинка",
-    "Чай Greenfield Golden Ceylon 100г",
-    "Картофель",
-    "Лук репчатый",
-    "Морковь",
-    "Капуста белокочанная",
-    "Яблоки сезонные"
-]
+if len(sys.argv) > 1:
+    PRODUCTS = [sys.argv[1]]
+else:
+    PRODUCTS = [
+        "Яйцо куриное Окское С1 10шт",
+        "Батон Коломенский Нарезной 200г",
+        "Молоко Простоквашино отборное пастеризованное",
+        "Сахар кусковой белый 1кг",
+        "Соль пищевая 1кг",
+        "Крупа гречневая Мистраль 900г",
+        "Масло Олейна подсолнечное 1л",
+        "Масло Брест-Литовск сливочное 82,5% 180г",
+        "Филе грудки цыпленка Петелинка",
+        "Чай Greenfield Golden Ceylon 100г",
+        "Картофель",
+        "Лук репчатый",
+        "Морковь",
+        "Капуста белокочанная",
+        "Яблоки сезонные"
+    ]
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../data/raw"))
 OUTPUT_FILE = os.path.join(BASE_DIR, "lenta_prices.csv")

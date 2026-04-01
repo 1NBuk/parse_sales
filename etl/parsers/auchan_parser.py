@@ -4,6 +4,7 @@ from datetime import datetime
 import re
 import os
 import sys
+import json
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
 sys.path.insert(0, BASE_DIR)
@@ -28,24 +29,29 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from rapidfuzz import fuzz
 
-# -------------------------------------------------------------
-products = [
-    "Яйцо куриное Окское С1 10шт",
-    "Батон Коломенский Нарезной 200г",
-    "Молоко Простоквашино отборное пастеризованное 3.4-4.5%",
-    "Сахар кусковой белый 1кг",
-    "Соль пищевая 1кг",
-    "Крупа гречневая Мистраль 900г",
-    "Масло Олейна подсолнечное 1л",
-    "Масло Брест-Литовск сливочное 82,5% 180г",
-    "Филе грудки цыпленка Петелинка",
-    "Чай Greenfield Golden Ceylon 100г",
-    "Картофель белый, вес",
-    "Лук репчатый",
-    "Социальный товар Морковь",
-    "Капуста белокочанная",
-    "Яблоки сезонные"
-]
+if len(sys.argv) > 1:
+    try:
+        products = json.loads(sys.argv[1])  # ожидаем JSON-строку
+    except:
+        products = [sys.argv[1]]
+else:
+    products = [
+        "Яйцо куриное Окское С1 10шт",
+        "Батон Коломенский Нарезной 200г",
+        "Молоко Простоквашино отборное пастеризованное 3.4-4.5%",
+        "Сахар кусковой белый 1кг",
+        "Соль пищевая 1кг",
+        "Крупа гречневая Мистраль 900г",
+        "Масло Олейна подсолнечное 1л",
+        "Масло Брест-Литовск сливочное 82,5% 180г",
+        "Филе грудки цыпленка Петелинка",
+        "Чай Greenfield Golden Ceylon 100г",
+        "Картофель белый, вес",
+        "Лук репчатый",
+        "Социальный товар Морковь",
+        "Капуста белокочанная",
+        "Яблоки сезонные"
+    ]
 
 results = []
 today = datetime.today().strftime("%Y-%m-%d")
@@ -74,7 +80,7 @@ def extract_price(card, driver):
             if m:
                 return float(m.group(1).replace(",", "."))
         except:
-            pass
+            continue
 
     # fallback через JS
     try:
@@ -85,7 +91,7 @@ def extract_price(card, driver):
         if js:
             m = re.search(r"(\d+[.,]?\d*)", js)
             if m:
-                return m.group(1).replace(",", ".") + " ₽"
+                return float(m.group(1).replace(",", "."))
     except:
         pass
 
@@ -105,12 +111,10 @@ def main():
         for product in products:
             name_only, unit_default = split_name_unit(product)
 
-            # если unit_default пустой, ставим "1 кг"
             if not unit_default:
                 unit_default = "1 кг"
 
             try:
-                # поиск
                 search_box = WebDriverWait(driver, 10).until(
                     EC.presence_of_element_located((By.CSS_SELECTOR, "input#search"))
                 )
@@ -118,13 +122,13 @@ def main():
                 search_box.send_keys(product)
                 search_box.send_keys(Keys.ENTER)
 
-                # загрузка карточек
                 WebDriverWait(driver, 15).until(
-                    EC.presence_of_all_elements_located((By.CSS_SELECTOR,
-                                                         "div.digi-product, div.product-card"))
+                    EC.presence_of_all_elements_located(
+                        (By.CSS_SELECTOR, "div.digi-product, div.product-card")
+                    )
                 )
 
-                time.sleep(1.5)  # даём пересобрать DOM
+                time.sleep(1.5)
 
                 cards = driver.find_elements(By.CSS_SELECTOR, "div.digi-product, div.product-card")
 
@@ -132,17 +136,11 @@ def main():
                 best_score = -1
 
                 for idx in range(len(cards)):
-
-                    # каждый раз получаем карточку заново → нет stale element
                     cards = driver.find_elements(By.CSS_SELECTOR, "div.digi-product, div.product-card")
                     card = cards[idx]
 
                     title = ""
-                    for sel in [
-                        "a.digi-product__label",
-                        ".digi-product__label",
-                        "a.product-card__title",
-                    ]:
+                    for sel in ["a.digi-product__label", ".digi-product__label", "a.product-card__title"]:
                         try:
                             title = card.find_element(By.CSS_SELECTOR, sel).text.strip()
                             break
@@ -153,15 +151,19 @@ def main():
                         continue
 
                     score = fuzz.token_sort_ratio(name_only.lower(), title.lower())
-
                     if score > best_score:
                         best_score = score
                         best_index = idx
 
                 if best_index is None or best_score < 25:
-                    print(f"Ашан — {product} — товар не найден (score={best_score})")
-                    results.append(
-                        {"store": "Ашан", "product": product, "unit": unit_default, "price": None, "date": today})
+                    print(f"Ашан — {product} — товар не найден (score={best_score})", file=sys.stderr)
+                    results.append({
+                        "store": "Ашан",
+                        "product": product,
+                        "unit": unit_default,
+                        "price": None,
+                        "date": today
+                    })
                     continue
 
                 cards = driver.find_elements(By.CSS_SELECTOR, "div.digi-product, div.product-card")
@@ -171,8 +173,7 @@ def main():
 
                 card_text = best_card.text
                 match_unit = re.search(r"(\d+\s?(г|кг|мл|л|шт))", card_text)
-                unit_site = match_unit.group(
-                    1) if match_unit else unit_default  # если нет на сайте, используем unit_default
+                unit_site = match_unit.group(1) if match_unit else unit_default
 
                 results.append({
                     "store": "Ашан",
@@ -182,25 +183,36 @@ def main():
                     "date": today
                 })
 
-                print(f"Ашан — {product} — {price} — {unit_site} (score={best_score})")
+                print(f"Ашан — {product} — {price} — {unit_site} (score={best_score})", file=sys.stderr)
 
             except Exception as e:
-                print(f"Ошибка при обработке '{product}': {e}")
-                results.append(
-                    {"store": "Ашан", "product": product, "unit": unit_default, "price": None, "date": today})
+                print(f"Ошибка при обработке '{product}': {e}", file=sys.stderr)
+                results.append({
+                    "store": "Ашан",
+                    "product": product,
+                    "unit": unit_default,
+                    "price": None,
+                    "date": today
+                })
 
             time.sleep(2)
 
     finally:
         driver.quit()
 
+    # -------------------------------------------------------------
     # SAVE
+    # -------------------------------------------------------------
     df = pd.DataFrame(results)
-    BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../data/raw"))
-    os.makedirs(BASE_DIR, exist_ok=True)
-    file_path = os.path.join(BASE_DIR, "auchan_prices.csv")
+    data_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../data/raw"))
+    os.makedirs(data_dir, exist_ok=True)
+    file_path = os.path.join(data_dir, "auchan_prices.csv")
     df.to_csv(file_path, index=False, encoding="utf-8-sig")
-    print(f"Сохранено {len(df)} записей в {file_path}")
+
+    print(f"Сохранено {len(df)} записей в {file_path}", file=sys.stderr)
+
+    # Вывод JSON в stdout
+    print(json.dumps(results, ensure_ascii=False))
 
 
 if __name__ == "__main__":
