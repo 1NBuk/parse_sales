@@ -8,7 +8,7 @@ import pandas as pd
 from datetime import datetime
 from urllib.parse import quote
 from rapidfuzz import fuzz
-
+import json
 
 try:
     from etl.driver_utils import create_driver
@@ -27,7 +27,10 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 if len(sys.argv) > 1:
-    PRODUCTS = [sys.argv[1]]
+    try:
+        products = json.loads(sys.argv[1])  # ожидаем JSON-строку
+    except:
+        products = [sys.argv[1]]
 else:
     PRODUCTS = [
         "Яйцо куриное Окское отборное С1 10шт",

@@ -150,16 +150,17 @@ st.set_page_config(page_title="Price Forecast App", layout="wide")
 st.title("Прогнозирование цен на продукты")
 st.markdown("Проект создан: **Букарёвой Анастасией**")
 
-# Навигация между страницами
 page = st.sidebar.selectbox(
     "Выберите страницу",
     ["Главная", "Таблицы", "Графики", "Просмотр предсказаний", "Добавление данных", "Запуск парсингов"]
 )
 
 if page == "Главная":
-
+    st.image(
+        "https://avatars.mds.yandex.net/i?id=f35dcd33d22aeebc29f5d0617985c49a_l-7684353-images-thumbs&n=13",
+        use_container_width=True
+    )
     st.markdown("""
-    ---
     # Выпускная квалификационная работа
 
     **Тема:** «Разработка системы для анализа и прогнозирования изменения цен на товары»
@@ -183,10 +184,6 @@ if page == "Главная":
 
     *Совет:* начните с раздела 'Таблицы', чтобы изучить данные, затем переходите к 'Графикам' и 'Просмотру предсказаний'.
     """)
-    st.image(
-        "https://avatars.mds.yandex.net/get-altay/219656/2a00000186401a00280b69bde2addfd47339/orig",
-        use_container_width=True
-    )
 
 elif page == "Таблицы":
     st.header("Просмотр таблиц")
@@ -250,6 +247,8 @@ elif page == "Таблицы":
     st.dataframe(df.head(limit))
 
 elif page == "Графики":
+    import plotly.express as px
+
     st.header("Графики")
 
     query = """
@@ -267,29 +266,46 @@ elif page == "Графики":
     """
 
     df = pd.read_sql(query, conn)
+    df["date"] = pd.to_datetime(df["date"])
 
-    # ===== ФИЛЬТРЫ =====
     st.sidebar.header("Фильтры")
 
-    # Продукт по названию
-    products = df["product_name"].unique()
-    selected_product = st.sidebar.selectbox("Продукт", products)
+    selected_product = st.sidebar.selectbox(
+        "Продукт",
+        sorted(df["product_name"].unique())
+    )
 
-    # Бренд
-    brands = df["brand_name"].unique()
-    selected_brand = st.sidebar.multiselect("Бренд", brands)
+    selected_brand = st.sidebar.multiselect(
+        "Бренд",
+        sorted(df["brand_name"].unique())
+    )
 
-    # Магазин
-    stores = df["store_name"].unique()
-    selected_store = st.sidebar.multiselect("Магазин", stores)
+    selected_store = st.sidebar.multiselect(
+        "Магазин",
+        sorted(df["store_name"].unique())
+    )
 
-    # Дата
     date_range = st.sidebar.date_input("Период", [])
 
-    # Метрика
     metric = st.selectbox("Метрика", ["price", "quantity"])
 
-    # ===== ПРИМЕНЕНИЕ ФИЛЬТРОВ =====
+    chart_type = st.selectbox(
+        "Тип графика",
+        ["Линейный", "Бар", "Scatter"]
+    )
+
+    group_by = st.selectbox(
+        "Группировка",
+        ["По дням", "По месяцам"]
+    )
+
+    compare_by = st.selectbox(
+        "Сравнение",
+        ["Нет", "brand_name", "store_name"]
+    )
+
+    show_rolling = st.checkbox("Скользящее среднее (7 дней)")
+
     df_filtered = df[df["product_name"] == selected_product]
 
     if selected_brand:
@@ -304,23 +320,50 @@ elif page == "Графики":
             (df_filtered["date"] <= pd.to_datetime(date_range[1]))
         ]
 
-    # ===== ГРУППИРОВКА =====
-    group_by = st.selectbox("Группировка", ["По дням", "По месяцам"])
-
     if group_by == "По месяцам":
-        df_filtered["date"] = pd.to_datetime(df_filtered["date"])
-        df_filtered["month"] = df_filtered["date"].dt.to_period("M")
-        df_plot = df_filtered.groupby("month")[metric].mean().reset_index()
-        df_plot["month"] = df_plot["month"].astype(str)
-        st.line_chart(df_plot.set_index("month"))
+        df_filtered["period"] = df_filtered["date"].dt.to_period("M").astype(str)
+        x_col = "period"
+    else:
+        df_filtered["period"] = df_filtered["date"]
+        x_col = "period"
+
+    if compare_by != "Нет":
+        df_plot = df_filtered.groupby(
+            [x_col, compare_by]
+        )[metric].mean().reset_index()
+
+        if chart_type == "Линейный":
+            fig = px.line(df_plot, x=x_col, y=metric, color=compare_by)
+        elif chart_type == "Бар":
+            fig = px.bar(df_plot, x=x_col, y=metric, color=compare_by)
+        else:
+            fig = px.scatter(df_plot, x=x_col, y=metric, color=compare_by)
 
     else:
-        df_plot = df_filtered.groupby("date")[metric].mean().reset_index()
-        st.line_chart(df_plot.set_index("date"))
+        df_plot = df_filtered.groupby(x_col)[metric].mean().reset_index()
 
-    # ===== ТАБЛИЦА =====
+        if show_rolling:
+            df_plot["rolling"] = df_plot[metric].rolling(7).mean()
+
+        if chart_type == "Линейный":
+            fig = px.line(df_plot, x=x_col, y=metric)
+        elif chart_type == "Бар":
+            fig = px.bar(df_plot, x=x_col, y=metric)
+        else:
+            fig = px.scatter(df_plot, x=x_col, y=metric)
+
+        if show_rolling:
+            fig.add_scatter(
+                x=df_plot[x_col],
+                y=df_plot["rolling"],
+                mode="lines",
+                name="rolling_7"
+            )
+
+    st.plotly_chart(fig, use_container_width=True)
+
     st.subheader("Данные")
-    st.dataframe(df_filtered.head(100))
+    st.dataframe(df_filtered.head(200))
 
 if page == "Просмотр предсказаний":
     st.header("Прогноз цен (будущее)")
@@ -427,12 +470,12 @@ elif page == "Добавление данных":
 elif page == "Запуск парсингов":
 
     import os
+    import subprocess
 
     st.header("Запуск парсингов")
 
     BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-
-    PRODUCTS_FILE = os.path.join(BASE_DIR, "products")  # теперь это файл!
+    PRODUCTS_FILE = os.path.join(BASE_DIR, "products")  # файл со всеми продуктами
     PARSERS_DIR = os.path.join(BASE_DIR, "etl", "parsers")
     TRANSFORM_SCRIPT = os.path.join(BASE_DIR, "etl", "transformer", "transform.py")
     EXTERNAL_SCRIPT = os.path.join(BASE_DIR, "etl", "load_external_factors.py")
@@ -443,102 +486,68 @@ elif page == "Запуск парсингов":
     if not os.path.exists(PARSERS_DIR):
         st.error(f"Нет папки парсеров: {PARSERS_DIR}")
         st.stop()
-
-    if not os.path.exists(PRODUCTS_FILE):
-        st.error(f"Нет файла продуктов: {PRODUCTS_FILE}")
-        st.stop()
-
     if not os.path.isfile(PRODUCTS_FILE):
-        st.error(f"products должен быть файлом: {PRODUCTS_FILE}")
+        st.error(f"Файл продуктов отсутствует: {PRODUCTS_FILE}")
         st.stop()
 
     # =========================
-    # Чтение продуктов из файла
+    # Чтение продуктов
     # =========================
     with open(PRODUCTS_FILE, "r", encoding="utf-8") as f:
-        products = [
-            line.strip().replace('"', '').replace(',', '')
-            for line in f.readlines()
-            if line.strip()
-        ]
+        products = [line.strip() for line in f.readlines() if line.strip()]
 
     # =========================
     # Выбор парсера (магазина)
     # =========================
     parsers = [f for f in os.listdir(PARSERS_DIR) if f.endswith(".py")]
-
-    selected_parser = st.selectbox(
-        "Выберите магазин (парсер)",
-        parsers
-    )
+    selected_parser = st.selectbox("Выберите магазин (парсер)", parsers)
+    parser_path = os.path.join(PARSERS_DIR, selected_parser)
 
     # =========================
     # Выбор продуктов
     # =========================
-    product_mode = st.radio(
-        "Выбор продуктов",
-        ["Все продукты", "Выбрать вручную"]
-    )
-
+    product_mode = st.radio("Выбор продуктов", ["Все продукты", "Выбрать вручную"])
     if product_mode == "Выбрать вручную":
         selected_products = st.multiselect("Выберите продукты", products)
     else:
         selected_products = products
 
     # =========================
-    # Режим
+    # Режим работы
     # =========================
-    mode = st.radio(
-        "Режим работы",
-        ["Только посмотреть", "Добавить в БД"]
-    )
+    mode = st.radio("Режим работы", ["Только посмотреть", "Добавить в БД"])
 
     # =========================
     # Запуск парсинга
     # =========================
     if st.button("Запустить парсинг"):
-        parser_path = os.path.join(PARSERS_DIR, selected_parser)
+        if not selected_products:
+            st.warning("Не выбраны продукты!")
+            st.stop()
 
-        all_data = []
+        # Передаем сразу список продуктов как JSON
+        products_json = json.dumps(selected_products, ensure_ascii=False)
 
-        for product in selected_products:
+        result = subprocess.run(
+            [sys.executable, parser_path, products_json],
+            capture_output=True,
+            text=True
+        )
 
-            result = subprocess.run(
-                [sys.executable, parser_path, product],
-                capture_output=True,
-                text=True
-            )
+        if result.returncode != 0:
+            st.error("Ошибка при парсинге")
+            st.text(result.stderr)
+            st.stop()
 
-            if result.returncode != 0:
-                st.error(f"Ошибка при парсинге: {product}")
-                st.text(result.stderr)
-                continue
-
-            try:
-                file_path = os.path.join(BASE_DIR, "data/raw/auchan_prices.csv")
-                df = pd.read_csv(file_path)
-                all_data.append(df)
-            except:
-                st.warning(f"Не удалось прочитать JSON для: {product}")
-
-        if not all_data:
-            st.error("Нет данных после парсинга")
-        else:
-            final_df = pd.concat(all_data, ignore_index=True)
+        try:
+            # Ожидаем JSON с результатами из парсера
+            parsed_data = json.loads(result.stdout)
+            final_df = pd.DataFrame(parsed_data)
 
             st.subheader("Результат парсинга")
             st.dataframe(final_df.head())
 
-            # =========================
-            # Только просмотр
-            # =========================
-            if mode == "Только посмотреть":
-                st.success("Режим просмотра завершен")
-
-            # =========================
-            # Добавление в БД
-            # =========================
-            else:
+            if mode == "Добавить в БД":
                 st.info("Запуск трансформации...")
 
                 transform_result = subprocess.run(
@@ -546,44 +555,36 @@ elif page == "Запуск парсингов":
                     capture_output=True,
                     text=True
                 )
-
                 if transform_result.returncode != 0:
                     st.error("Ошибка трансформации")
                     st.text(transform_result.stderr)
                     st.stop()
-
                 st.success("Трансформация выполнена")
 
-                # =========================
-                # Проверка дублей
-                # =========================
-                st.info("Проверка на дубликаты...")
-
+                # Проверка на дубликаты
                 existing = pd.read_sql(
                     "SELECT date, product_id, store_id FROM prices_history",
                     conn
                 )
-
                 merged = final_df.merge(
                     existing,
                     on=["date", "product_id", "store_id"],
                     how="left",
                     indicator=True
                 )
-
                 new_data = merged[merged["_merge"] == "left_only"].drop(columns=["_merge"])
 
                 st.write(f"Новых записей: {len(new_data)}")
-
                 if len(new_data) > 0:
                     new_data.to_sql("prices_history", conn, if_exists="append", index=False)
                     st.success("Данные добавлены в БД")
                 else:
                     st.warning("Все данные уже есть в БД")
 
-    # =========================
-    # EXTERNAL FACTORS
-    # =========================
+        except Exception as e:
+            st.error(f"Не удалось обработать результат парсинга: {e}")
+            st.text(result.stdout)
+
     st.markdown("---")
     st.subheader("External factors по дате")
 

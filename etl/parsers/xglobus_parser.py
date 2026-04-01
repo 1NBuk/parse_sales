@@ -27,7 +27,10 @@ from selenium.webdriver.support import expected_conditions as EC
 from rapidfuzz import fuzz
 
 if len(sys.argv) > 1:
-    PRODUCTS = [sys.argv[1]]
+    try:
+        PRODUCTS = json.loads(sys.argv[1])  # ожидаем JSON-строку
+    except:
+        PRODUCTS = [sys.argv[1]]
 else:
     PRODUCTS = [
         "Яйцо куриное Окское С1 10шт",

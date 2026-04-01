@@ -21,7 +21,10 @@ from rapidfuzz import fuzz
 # Импортируем webdriver-manager для автоматического управления драйверами
 from webdriver_manager.chrome import ChromeDriverManager
 if len(sys.argv) > 1:
-    products = [sys.argv[1]]
+    try:
+        products = json.loads(sys.argv[1])  # ожидаем JSON-строку
+    except:
+        products = [sys.argv[1]]
 else:
     products = [
         "Яйцо куриное Окское отборное С1 10шт",

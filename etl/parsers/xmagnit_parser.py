@@ -19,7 +19,10 @@ from etl.driver_utils import create_driver
 
 
 if len(sys.argv) > 1:
-    PRODUCTS = [sys.argv[1]]
+    try:
+        PRODUCTS = json.loads(sys.argv[1])  # ожидаем JSON-строку
+    except:
+        PRODUCTS = [sys.argv[1]]
 else:
     PRODUCTS = [
         "Яйцо Окское С1",
