@@ -130,7 +130,8 @@
 
 ### Парсинг данных
 
-📷 *Вставить скриншот парсинга*
+<img width="1789" height="872" alt="image" src="https://github.com/user-attachments/assets/93bdd392-ff6e-4dc3-8e8f-5b94641d6d19" />
+
 
 - запуск парсеров магазинов
 - выбор:
