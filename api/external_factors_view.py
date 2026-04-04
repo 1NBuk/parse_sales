@@ -1,10 +1,14 @@
 import psycopg2
 import pandas as pd
+from dotenv import load_dotenv
+import os
 
-PG_HOST = "localhost"
+load_dotenv()
+
+PG_HOST = os.getenv("PG_HOST")
+PG_PASSWORD = os.getenv("PG_PASSWORD")
 PG_DATABASE = "prices_db"
 PG_USER = "postgres"
-PG_PASSWORD = "12345"
 
 def get_latest_external_factors(n=30):
     conn = psycopg2.connect(

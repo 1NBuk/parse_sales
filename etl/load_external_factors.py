@@ -5,12 +5,15 @@ import yfinance as yf
 import pandas as pd
 import sys
 import argparse
-from datetime import datetime
+from dotenv import load_dotenv
+import os
 
-PG_HOST = "localhost"
+load_dotenv()
+
+PG_HOST = os.getenv("PG_HOST")
+PG_PASSWORD = os.getenv("PG_PASSWORD")
 PG_DATABASE = "prices_db"
 PG_USER = "postgres"
-PG_PASSWORD = "12345"
 
 def get_rate(code, date_obj):
     url = f"https://www.cbr.ru/scripts/XML_daily.asp?date_req={date_obj.strftime('%d/%m/%Y')}"

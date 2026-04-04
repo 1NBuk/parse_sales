@@ -2,15 +2,15 @@ import os
 import csv
 import psycopg2
 from datetime import datetime
+from dotenv import load_dotenv
+import os
 
-# --------------------------------------------------
-# PostgreSQL SETTINGS
-# --------------------------------------------------
+load_dotenv()
 
-PG_HOST = "localhost"
+PG_HOST = os.getenv("PG_HOST")
+PG_PASSWORD = os.getenv("PG_PASSWORD")
 PG_DATABASE = "prices_db"
 PG_USER = "postgres"
-PG_PASSWORD = "12345"
 
 RAW_TABLE = "prices_raw"
 

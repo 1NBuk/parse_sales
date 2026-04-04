@@ -8,7 +8,7 @@ from googleapiclient.http import MediaFileUpload
 # Настройки
 # --------------------------
 # Папка на Google Drive, куда загружать файлы
-FOLDER_ID = "16ytw-ZV05jveJksJjY4bwfuoK_OxXiAa"
+FOLDER_ID = ""
 
 # Локальный файл, который нужно загрузить
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))

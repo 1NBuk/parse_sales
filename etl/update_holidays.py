@@ -1,16 +1,15 @@
 import psycopg2
 from datetime import date
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 def update_holidays():
-    """
-    Обновляет колонку is_holiday в таблице calendar:
-    - TRUE для праздников
-    - FALSE для всех остальных дней
-    """
-    PG_HOST = "localhost"
+    PG_HOST = os.getenv("PG_HOST")
+    PG_PASSWORD = os.getenv("PG_PASSWORD")
     PG_DATABASE = "prices_db"
     PG_USER = "postgres"
-    PG_PASSWORD = "12345"
 
     # Список праздников
     holidays = [

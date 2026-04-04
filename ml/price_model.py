@@ -2,12 +2,18 @@ import os
 import pandas as pd
 import psycopg2
 from catboost import CatBoostRegressor
+from dotenv import load_dotenv
+import os
 
+load_dotenv()
+
+PG_HOST = os.getenv("PG_HOST")
+PG_PASSWORD = os.getenv("PG_PASSWORD")
 DB_CONFIG = {
-    "host": "localhost",
+    "host": PG_HOST,
     "database": "prices_db",
     "user": "postgres",
-    "password": "12345"
+    "password": PG_PASSWORD
 }
 
 MODEL_PATH = "catboost_price_model.cbm"

@@ -1,7 +1,6 @@
 # Работа с веб-браузером
 selenium==4.15.0
-
-# Быстрое сравнение строк для fuzzy search
+dotenv
 rapidfuzz==2.15.1
 selenium
 pandas==2.1.1

@@ -8,12 +8,18 @@ import sys
 import tempfile
 import json
 import re
+from dotenv import load_dotenv
+import os
 
+load_dotenv()
+
+PG_HOST = os.getenv("PG_HOST")
+PG_PASSWORD = os.getenv("PG_PASSWORD")
 DB_CONFIG = {
-    "host": "localhost",
+    "host": PG_HOST,
     "database": "prices_db",
     "user": "postgres",
-    "password": "12345"
+    "password": PG_PASSWORD
 }
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
