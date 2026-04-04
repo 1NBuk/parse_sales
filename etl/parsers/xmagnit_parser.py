@@ -19,10 +19,7 @@ from etl.driver_utils import create_driver
 
 
 if len(sys.argv) > 1:
-    try:
-        PRODUCTS = json.loads(sys.argv[1])  # ожидаем JSON-строку
-    except:
-        PRODUCTS = [sys.argv[1]]
+    PRODUCTS = [sys.argv[1]]
 else:
     PRODUCTS = [
         "Яйцо Окское С1",
@@ -101,29 +98,51 @@ def click_choose_store_screen(driver):
 
 
 def input_address_and_select(driver, address):
-    """ГЛАВНОЕ: ввод именно в 'Адрес магазина' + кнопка 'Выбрать'"""
+    """Ввод адреса в поле поиска и выбор магазина"""
 
-    # поле "Адрес магазина"
-    address_input = WebDriverWait(driver, 20).until(
-        EC.visibility_of_element_located(
-            (By.XPATH, "//input[@placeholder='Адрес магазина']")
+    # Шаг 1: Ждем появления поля "Адрес магазина"
+    try:
+        address_input = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located(
+                (By.XPATH, "//input[@placeholder='Адрес магазина']")
+            )
         )
-    )
+        print("[✓] Поле поиска адреса найдено")
+    except TimeoutException:
+        print("[✗] Поле поиска адреса не найдено")
+        raise
 
+    # Шаг 2: Очищаем и вводим адрес
     address_input.clear()
     address_input.send_keys(address)
-    time.sleep(2)
+    print(f"[i] Введен адрес: {address}")
+    time.sleep(2)  # Ждем появления результатов поиска
 
-    # кнопка "Выбрать" у первого магазина
-    choose_btn = WebDriverWait(driver, 20).until(
-        EC.element_to_be_clickable(
-            (By.XPATH, "//button[.//span[normalize-space()='Выбрать']]")
+    # Шаг 3: Ищем кнопку "Выбрать" у первого магазина в результатах
+    try:
+        # Вариант 1: Кнопка с текстом "Выбрать"
+        choose_btn = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable(
+                (By.XPATH, "//button[contains(., 'Выбрать')]")
+            )
         )
-    )
+        driver.execute_script("arguments[0].click();", choose_btn)
+        print(f"[✓] Нажата кнопка 'Выбрать'")
+    except TimeoutException:
+        # Вариант 2: Возможно нужно кликнуть по карточке магазина
+        try:
+            shop_item = WebDriverWait(driver, 5).until(
+                EC.element_to_be_clickable(
+                    (By.CSS_SELECTOR, ".pl-shop-item, [data-test-id='shop-item']")
+                )
+            )
+            driver.execute_script("arguments[0].click();", shop_item)
+            print(f"[✓] Выбран магазин из списка")
+        except TimeoutException:
+            print("[✗] Не найдена кнопка 'Выбрать' или карточка магазина")
+            raise
 
-    driver.execute_script("arguments[0].click();", choose_btn)
     time.sleep(3)
-
     print(f"[✓] Магазин выбран по адресу: {address}")
 
 

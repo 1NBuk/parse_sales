@@ -7,6 +7,7 @@ import os
 import sys
 import tempfile
 import json
+import re
 
 DB_CONFIG = {
     "host": "localhost",
@@ -20,7 +21,10 @@ sys.path.append(BASE_DIR)
 MODEL_PATH = os.path.join(BASE_DIR, "ml", "catboost_price_model.cbm")
 
 from etl.upload_to_postgres import upload
+
 conn = psycopg2.connect(**DB_CONFIG)
+
+
 def build_features(df):
     df = df.sort_values(["product_id", "store_id", "date"])
     group = df.groupby(["product_id", "store_id"])
@@ -39,34 +43,30 @@ def forecast_future(df, model, days=14):
     df = df.sort_values("date").copy()
     future_rows = []
 
-    # Категориальные признаки
     cat_features = ["product_id", "store_id", "brand_id", "day_of_week",
                     "week_of_year", "month", "is_weekend", "is_holiday"]
 
-    # Числовые признаки
     num_features = ["quantity", "usd_rub", "eur_rub", "oil_price", "temperature", "precipitation",
                     "price_lag_1", "price_lag_3", "price_lag_7", "price_lag_14",
                     "price_mean_7", "price_std_7", "price_diff_1"]
-
-    # Порядок колонок, который ожидает модель
-    feature_cols = ["quantity"] + cat_features + num_features[1:]  # num_features[1:] без "quantity"
 
     for i in range(days):
         last_rows = df.tail(14)
         new_row = last_rows.iloc[-1:].copy()
 
-        # =======================
-        # Лаги
-        # =======================
         new_row["price_lag_1"] = last_rows["price"].iloc[-1] if len(last_rows) >= 1 else 0
-        new_row["price_lag_3"] = last_rows["price"].iloc[-3] if len(last_rows) >= 3 else last_rows["price"].mean() if len(last_rows) > 0 else 0
-        new_row["price_lag_7"] = last_rows["price"].iloc[-7] if len(last_rows) >= 7 else last_rows["price"].mean() if len(last_rows) > 0 else 0
-        new_row["price_lag_14"] = last_rows["price"].iloc[-14] if len(last_rows) >= 14 else last_rows["price"].mean() if len(last_rows) > 0 else 0
-        new_row["price_mean_7"] = last_rows["price"].tail(7).mean() if len(last_rows) >= 7 else last_rows["price"].mean() if len(last_rows) > 0 else 0
+        new_row["price_lag_3"] = last_rows["price"].iloc[-3] if len(last_rows) >= 3 else last_rows[
+            "price"].mean() if len(last_rows) > 0 else 0
+        new_row["price_lag_7"] = last_rows["price"].iloc[-7] if len(last_rows) >= 7 else last_rows[
+            "price"].mean() if len(last_rows) > 0 else 0
+        new_row["price_lag_14"] = last_rows["price"].iloc[-14] if len(last_rows) >= 14 else last_rows[
+            "price"].mean() if len(last_rows) > 0 else 0
+        new_row["price_mean_7"] = last_rows["price"].tail(7).mean() if len(last_rows) >= 7 else last_rows[
+            "price"].mean() if len(last_rows) > 0 else 0
         new_row["price_std_7"] = last_rows["price"].tail(7).std() or 0 if len(last_rows) >= 7 else 0
-        new_row["price_diff_1"] = new_row["price_lag_1"].iloc[0] - last_rows["price"].iloc[-2] if len(last_rows) > 1 else 0
+        new_row["price_diff_1"] = new_row["price_lag_1"].iloc[0] - last_rows["price"].iloc[-2] if len(
+            last_rows) > 1 else 0
 
-        # Количество
         if len(last_rows) >= 7:
             new_row["quantity"] = last_rows["quantity"].tail(7).mean()
         elif len(last_rows) > 0:
@@ -74,42 +74,27 @@ def forecast_future(df, model, days=14):
         else:
             new_row["quantity"] = 0
 
-        # is_weekend / is_holiday
         for col in ["is_weekend", "is_holiday"]:
             if col in new_row.columns:
                 new_row[col] = new_row[col].fillna(False).apply(lambda x: "1" if x else "0")
 
-        # =======================
-        # Дата
-        # =======================
         new_row["date"] = new_row["date"].iloc[0] + pd.Timedelta(days=1)
 
-        # =======================
-        # Формируем X в правильном порядке
-        # =======================
         X = pd.DataFrame()
-
-        # Сначала quantity
         X["quantity"] = new_row["quantity"]
 
-        # Категориальные признаки
         for col in cat_features:
             X[col] = new_row[col].astype(str).replace('nan', 'unknown')
 
-        # Остальные числовые признаки
         for col in num_features:
             if col != "quantity":
                 X[col] = pd.to_numeric(new_row[col], errors='coerce').fillna(0).astype(float)
 
-        # =======================
-        # Прогноз
-        # =======================
         try:
             pred = model.predict(X)[0]
             new_row["price"] = pred
         except Exception as e:
             st.error(f"Ошибка при прогнозе: {e}")
-            st.write(X)
             raise e
 
         df = pd.concat([df, new_row], ignore_index=True)
@@ -117,27 +102,26 @@ def forecast_future(df, model, days=14):
 
     future_df = pd.concat(future_rows, ignore_index=True) if future_rows else pd.DataFrame()
     return future_df
+
+
 REQUIRED_COLUMNS = [
     "store", "product_clean", "brand",
     "price", "quantity", "unit_normalized", "date"
 ]
 
+
 def validate_csv(df):
-    # 1. Проверка колонок
     missing = set(REQUIRED_COLUMNS) - set(df.columns)
     if missing:
         raise ValueError(f"Нет колонок: {missing}")
 
-    # 2. Типы
     df["price"] = pd.to_numeric(df["price"], errors="coerce")
     df["quantity"] = pd.to_numeric(df["quantity"], errors="coerce")
     df["date"] = pd.to_datetime(df["date"], errors="coerce")
 
-    # 3. NaN check
     if df[["price", "quantity", "date"]].isna().any().any():
         raise ValueError("Есть некорректные значения (NaN)")
 
-    # 4. Логическая проверка
     if (df["price"] <= 0).any():
         raise ValueError("Цена <= 0")
 
@@ -145,6 +129,8 @@ def validate_csv(df):
         raise ValueError("Количество <= 0")
 
     return df
+
+
 st.set_page_config(page_title="Price Forecast App", layout="wide")
 
 st.title("Прогнозирование цен на продукты")
@@ -200,11 +186,9 @@ elif page == "Таблицы":
 
     selected_table = st.selectbox("Выберите таблицу", tables)
 
-    # Получаем данные
     query = f"SELECT * FROM {selected_table} LIMIT 1000"
     df = pd.read_sql(query, conn)
 
-    # Выбор колонок
     columns = st.multiselect(
         "Выберите колонки",
         df.columns.tolist(),
@@ -213,7 +197,6 @@ elif page == "Таблицы":
 
     df = df[columns]
 
-    # ===== ФИЛЬТРЫ =====
     st.subheader("Фильтры")
 
     for col in df.columns:
@@ -225,13 +208,7 @@ elif page == "Таблицы":
         elif "int" in str(df[col].dtype) or "float" in str(df[col].dtype):
             min_val = float(df[col].min())
             max_val = float(df[col].max())
-
-            selected_range = st.slider(
-                f"{col}",
-                min_val,
-                max_val,
-                (min_val, max_val)
-            )
+            selected_range = st.slider(f"{col}", min_val, max_val, (min_val, max_val))
             df = df[df[col].between(*selected_range)]
 
         elif "date" in str(df[col].dtype):
@@ -240,9 +217,8 @@ elif page == "Таблицы":
                 df = df[
                     (df[col] >= pd.to_datetime(date_range[0])) &
                     (df[col] <= pd.to_datetime(date_range[1]))
-                ]
+                    ]
 
-    # Лимит строк
     limit = st.slider("Количество строк", 10, 1000, 100)
     st.dataframe(df.head(limit))
 
@@ -318,7 +294,7 @@ elif page == "Графики":
         df_filtered = df_filtered[
             (df_filtered["date"] >= pd.to_datetime(date_range[0])) &
             (df_filtered["date"] <= pd.to_datetime(date_range[1]))
-        ]
+            ]
 
     if group_by == "По месяцам":
         df_filtered["period"] = df_filtered["date"].dt.to_period("M").astype(str)
@@ -328,9 +304,7 @@ elif page == "Графики":
         x_col = "period"
 
     if compare_by != "Нет":
-        df_plot = df_filtered.groupby(
-            [x_col, compare_by]
-        )[metric].mean().reset_index()
+        df_plot = df_filtered.groupby([x_col, compare_by])[metric].mean().reset_index()
 
         if chart_type == "Линейный":
             fig = px.line(df_plot, x=x_col, y=metric, color=compare_by)
@@ -338,7 +312,6 @@ elif page == "Графики":
             fig = px.bar(df_plot, x=x_col, y=metric, color=compare_by)
         else:
             fig = px.scatter(df_plot, x=x_col, y=metric, color=compare_by)
-
     else:
         df_plot = df_filtered.groupby(x_col)[metric].mean().reset_index()
 
@@ -353,19 +326,14 @@ elif page == "Графики":
             fig = px.scatter(df_plot, x=x_col, y=metric)
 
         if show_rolling:
-            fig.add_scatter(
-                x=df_plot[x_col],
-                y=df_plot["rolling"],
-                mode="lines",
-                name="rolling_7"
-            )
+            fig.add_scatter(x=df_plot[x_col], y=df_plot["rolling"], mode="lines", name="rolling_7")
 
     st.plotly_chart(fig, use_container_width=True)
 
     st.subheader("Данные")
     st.dataframe(df_filtered.head(200))
 
-if page == "Просмотр предсказаний":
+elif page == "Просмотр предсказаний":
     st.header("Прогноз цен (будущее)")
 
     model = CatBoostRegressor()
@@ -401,12 +369,6 @@ if page == "Просмотр предсказаний":
     """
     df = pd.read_sql(query, conn)
 
-    # словари для маппинга (на всякий случай)
-    brand_map = {name: id for id, name in df[["brand_id","brand_name"]].drop_duplicates().values}
-    store_map = {name: id for id, name in df[["store_id","store_name"]].drop_duplicates().values}
-    product_map = {name: id for id, name in df[["product_id","product_name"]].drop_duplicates().values}
-
-    # фильтры
     products = df["product_name"].unique()
     selected_product = st.sidebar.selectbox("Продукт", products)
     df = df[df["product_name"] == selected_product]
@@ -448,8 +410,6 @@ if page == "Просмотр предсказаний":
             st.subheader("Таблица прогноза")
             st.dataframe(future_df[["date", "price"]])
 
-
-
 elif page == "Добавление данных":
     st.header("Добавление своих данных")
     uploaded_file = st.file_uploader("Выберите CSV файл", type=["csv"])
@@ -468,88 +428,167 @@ elif page == "Добавление данных":
                 st.error(f"Ошибка: {e}")
 
 elif page == "Запуск парсингов":
-
-    import os
-    import subprocess
-
     st.header("Запуск парсингов")
 
     BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-    PRODUCTS_FILE = os.path.join(BASE_DIR, "products")  # файл со всеми продуктами
-    PARSERS_DIR = os.path.join(BASE_DIR, "etl", "parsers")
+    PRODUCTS_FILE = os.path.join(BASE_DIR, "products")
+    PARSERS_DIR = os.path.join(BASE_DIR, "api", "app_parsers")
     TRANSFORM_SCRIPT = os.path.join(BASE_DIR, "etl", "transformer", "transform.py")
     EXTERNAL_SCRIPT = os.path.join(BASE_DIR, "etl", "load_external_factors.py")
 
-    # =========================
-    # Проверки
-    # =========================
     if not os.path.exists(PARSERS_DIR):
         st.error(f"Нет папки парсеров: {PARSERS_DIR}")
         st.stop()
-    if not os.path.isfile(PRODUCTS_FILE):
-        st.error(f"Файл продуктов отсутствует: {PRODUCTS_FILE}")
-        st.stop()
 
-    # =========================
-    # Чтение продуктов
-    # =========================
+    if not os.path.isfile(PRODUCTS_FILE):
+        default_products = [
+            "Яйцо куриное Окское отборное С0 10шт",
+            "Молоко Простоквашино 1л",
+            "Хлеб белый 500г",
+            "Масло сливочное 200г",
+            "Сахар песок 1кг"
+        ]
+        with open(PRODUCTS_FILE, "w", encoding="utf-8") as f:
+            f.write("\n".join(default_products))
+
     with open(PRODUCTS_FILE, "r", encoding="utf-8") as f:
         products = [line.strip() for line in f.readlines() if line.strip()]
 
-    # =========================
-    # Выбор парсера (магазина)
-    # =========================
     parsers = [f for f in os.listdir(PARSERS_DIR) if f.endswith(".py")]
     selected_parser = st.selectbox("Выберите магазин (парсер)", parsers)
     parser_path = os.path.join(PARSERS_DIR, selected_parser)
 
-    # =========================
-    # Выбор продуктов
-    # =========================
-    product_mode = st.radio("Выбор продуктов", ["Все продукты", "Выбрать вручную"])
-    if product_mode == "Выбрать вручную":
-        selected_products = st.multiselect("Выберите продукты", products)
-    else:
-        selected_products = products
+    st.subheader("Выбор продуктов")
 
-    # =========================
-    # Режим работы
-    # =========================
+    col1, col2 = st.columns([1, 2])
+    with col1:
+        product_mode = st.radio("Режим выбора", ["Все продукты", "Выбрать вручную", "По категориям"])
+
+    with col2:
+        if product_mode == "Выбрать вручную":
+            selected_products = st.multiselect("Выберите продукты", products)
+        elif product_mode == "По категориям":
+            categories = {
+                "Яйца": [p for p in products if "яйцо" in p.lower()],
+                "Молочные продукты": [p for p in products if
+                                      any(word in p.lower() for word in ["молоко", "кефир", "сметана", "йогурт"])],
+                "Хлебобулочные": [p for p in products if any(word in p.lower() for word in ["хлеб", "батон", "булка"])],
+                "Бакалея": [p for p in products if
+                            any(word in p.lower() for word in ["сахар", "соль", "крупа", "масло", "мука"])],
+                "Овощи и фрукты": [p for p in products if any(
+                    word in p.lower() for word in ["картофель", "лук", "морковь", "капуста", "яблоко"])],
+                "Мясо и птица": [p for p in products if
+                                 any(word in p.lower() for word in ["курица", "цыпленок", "филе", "мясо"])]
+            }
+            selected_category = st.selectbox("Выберите категорию", list(categories.keys()))
+            if selected_category:
+                selected_products = st.multiselect("Выберите продукты из категории", categories[selected_category])
+            else:
+                selected_products = []
+        else:
+            selected_products = products
+
+    st.caption(f"Выбрано продуктов: {len(selected_products)}")
+
+    if product_mode == "Выбрать вручную" and st.button("Выбрать все"):
+        selected_products = products
+        st.rerun()
+
     mode = st.radio("Режим работы", ["Только посмотреть", "Добавить в БД"])
 
-    # =========================
-    # Запуск парсинга
-    # =========================
-    if st.button("Запустить парсинг"):
+    if st.button("Запустить парсинг", type="primary"):
         if not selected_products:
             st.warning("Не выбраны продукты!")
             st.stop()
 
-        # Передаем сразу список продуктов как JSON
-        products_json = json.dumps(selected_products, ensure_ascii=False)
+        cleaned_products = []
+        for p in selected_products:
+            cleaned = p.strip().strip('"').strip("'").strip()
+            cleaned = re.sub(r'^["\']+|["\']+$', '', cleaned)
+            cleaned_products.append(cleaned)
 
-        result = subprocess.run(
-            [sys.executable, parser_path, products_json],
-            capture_output=True,
+        st.write(f"Обрабатываем продуктов: {len(cleaned_products)}")
+
+        with st.expander("Показать список продуктов"):
+            st.write(cleaned_products[:10])
+            if len(cleaned_products) > 10:
+                st.write(f"... и еще {len(cleaned_products) - 10} продуктов")
+
+        products_json = json.dumps(cleaned_products, ensure_ascii=False)
+
+        progress_bar = st.progress(0)
+        status_text = st.empty()
+
+        status_text.text("Запуск парсера...")
+        progress_bar.progress(10)
+
+        process = subprocess.Popen(
+            [sys.executable, parser_path],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             text=True
         )
 
-        if result.returncode != 0:
+        progress_bar.progress(30)
+        status_text.text("Парсинг данных...")
+
+        stdout, stderr = process.communicate(input=products_json)
+
+        progress_bar.progress(90)
+        status_text.text("Обработка результатов...")
+
+        if process.returncode != 0:
             st.error("Ошибка при парсинге")
-            st.text(result.stderr)
+            with st.expander("Детали ошибки"):
+                st.text(f"Код ошибки: {process.returncode}")
+                st.text(f"stderr:\n{stderr}")
+            progress_bar.empty()
+            status_text.empty()
             st.stop()
 
         try:
-            # Ожидаем JSON с результатами из парсера
-            parsed_data = json.loads(result.stdout)
+            if not stdout or stdout.strip() == "":
+                st.error("Парсер не вернул данных")
+                progress_bar.empty()
+                status_text.empty()
+                st.stop()
+
+            json_match = re.search(r'\[\s*\{.*\}\s*\]', stdout, re.DOTALL)
+            if json_match:
+                json_str = json_match.group()
+                parsed_data = json.loads(json_str)
+            else:
+                parsed_data = json.loads(stdout)
+
             final_df = pd.DataFrame(parsed_data)
+            progress_bar.progress(100)
+            status_text.text("Готово")
 
             st.subheader("Результат парсинга")
-            st.dataframe(final_df.head())
+
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Всего обработано", len(final_df))
+            with col2:
+                found_count = final_df['price'].notna().sum()
+                st.metric("Найдено товаров", found_count)
+            with col3:
+                not_found_count = final_df['price'].isna().sum()
+                st.metric("Не найдено", not_found_count)
+
+            st.dataframe(final_df, use_container_width=True)
+
+            csv = final_df.to_csv(index=False, encoding='utf-8-sig')
+            st.download_button(
+                label="Скачать результаты как CSV",
+                data=csv,
+                file_name=f"parsing_results_{selected_parser}_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                mime="text/csv"
+            )
 
             if mode == "Добавить в БД":
                 st.info("Запуск трансформации...")
-
                 transform_result = subprocess.run(
                     [sys.executable, TRANSFORM_SCRIPT],
                     capture_output=True,
@@ -561,56 +600,99 @@ elif page == "Запуск парсингов":
                     st.stop()
                 st.success("Трансформация выполнена")
 
-                # Проверка на дубликаты
-                existing = pd.read_sql(
-                    "SELECT date, product_id, store_id FROM prices_history",
-                    conn
-                )
-                merged = final_df.merge(
-                    existing,
-                    on=["date", "product_id", "store_id"],
-                    how="left",
-                    indicator=True
-                )
-                new_data = merged[merged["_merge"] == "left_only"].drop(columns=["_merge"])
+                try:
+                    from etl.upload_to_postgres import upload
 
-                st.write(f"Новых записей: {len(new_data)}")
-                if len(new_data) > 0:
-                    new_data.to_sql("prices_history", conn, if_exists="append", index=False)
-                    st.success("Данные добавлены в БД")
-                else:
-                    st.warning("Все данные уже есть в БД")
+                    processed_dir = os.path.join(BASE_DIR, "data", "processed")
+                    if os.path.exists(processed_dir):
+                        csv_files = [f for f in os.listdir(processed_dir) if f.endswith('.csv')]
+                        if csv_files:
+                            for file in csv_files:
+                                file_path = os.path.join(processed_dir, file)
+                                st.write(f"Загрузка {file}...")
+                                upload(file_path)
+                            st.success(f"Загружено {len(csv_files)} файлов в базу данных")
+                        else:
+                            st.warning("Нет CSV файлов в папке processed")
+                    else:
+                        st.warning("Папка с обработанными данными не найдена")
 
-        except Exception as e:
+                except Exception as e:
+                    st.error(f"Ошибка при загрузке в БД: {e}")
+
+            progress_bar.empty()
+            status_text.empty()
+
+        except json.JSONDecodeError as e:
             st.error(f"Не удалось обработать результат парсинга: {e}")
-            st.text(result.stdout)
+            with st.expander("Показать вывод парсера для отладки"):
+                st.text(f"stdout:\n{stdout}")
+                st.text(f"stderr:\n{stderr}")
+            progress_bar.empty()
+            status_text.empty()
+        except Exception as e:
+            st.error(f"Ошибка: {e}")
+            with st.expander("Детали ошибки"):
+                st.text(f"stdout: {stdout}")
+                st.text(f"stderr: {stderr}")
+            progress_bar.empty()
+            status_text.empty()
+
+    with st.expander("Управление списком продуктов"):
+        st.subheader("Редактировать список продуктов")
+
+        current_products_text = "\n".join(products)
+        new_products_text = st.text_area(
+            "Редактируйте список (каждый продукт с новой строки):",
+            value=current_products_text,
+            height=200
+        )
+
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("Сохранить изменения"):
+                new_products = [p.strip() for p in new_products_text.split('\n') if p.strip()]
+                with open(PRODUCTS_FILE, "w", encoding="utf-8") as f:
+                    f.write("\n".join(new_products))
+                st.success(f"Сохранено {len(new_products)} продуктов")
+                st.rerun()
+
+        with col2:
+            if st.button("Сбросить к стандартному списку"):
+                default_products = [
+                    "Яйцо куриное Окское отборное С0 10шт",
+                    "Молоко Простоквашино 1л",
+                    "Хлеб белый 500г",
+                    "Масло сливочное 200г",
+                    "Сахар песок 1кг"
+                ]
+                with open(PRODUCTS_FILE, "w", encoding="utf-8") as f:
+                    f.write("\n".join(default_products))
+                st.success("Список сброшен к стандартному")
+                st.rerun()
 
     st.markdown("---")
+
     st.subheader("External factors по дате")
 
-    # Выбор даты
-    ext_date = st.date_input("Выберите дату")
+    col1, col2, col3 = st.columns([2, 2, 1])
+    with col1:
+        ext_date = st.date_input("Выберите дату")
+    with col2:
+        ext_factor = st.selectbox(
+            "Выберите фактор",
+            ["Все", "usd_rub", "eur_rub", "oil_price", "temperature", "precipitation"]
+        )
+    with col3:
+        ext_mode = st.radio("Режим", ["Просмотр", "Добавить в БД"], horizontal=True)
 
-    # Выбор фактора
-    ext_factor = st.selectbox(
-        "Выберите фактор",
-        ["Все", "usd_rub", "eur_rub", "oil_price", "temperature", "precipitation"]
-    )
-
-    # Режим работы
-    ext_mode = st.radio(
-        "Режим external factors",
-        ["Только посмотреть", "Добавить в БД"]
-    )
-
-    if st.button("Загрузить external factors"):
-        # Формируем команду для скрипта
+    if st.button("Загрузить external factors", type="secondary"):
         cmd = [sys.executable, EXTERNAL_SCRIPT, "--date", str(ext_date)]
         if ext_factor != "Все":
             cmd += ["--factor", ext_factor]
 
-        # Запуск скрипта
-        result = subprocess.run(cmd, capture_output=True, text=True)
+        with st.spinner("Загрузка данных..."):
+            result = subprocess.run(cmd, capture_output=True, text=True)
 
         if result.returncode != 0:
             st.error("Ошибка при получении external factor")
@@ -623,12 +705,7 @@ elif page == "Запуск парсингов":
 
                 if ext_mode == "Добавить в БД":
                     existing = pd.read_sql("SELECT date FROM external_factors", conn)
-                    merged = df_ext.merge(
-                        existing,
-                        on="date",
-                        how="left",
-                        indicator=True
-                    )
+                    merged = df_ext.merge(existing, on="date", how="left", indicator=True)
                     new_data = merged[merged["_merge"] == "left_only"].drop(columns=["_merge"])
 
                     if len(new_data) > 0:
@@ -636,6 +713,5 @@ elif page == "Запуск парсингов":
                         st.success("External factors добавлены в БД")
                     else:
                         st.warning("Данные для этой даты уже есть в БД")
-
             except Exception as e:
                 st.warning(f"Не удалось прочитать данные external factors: {e}")
