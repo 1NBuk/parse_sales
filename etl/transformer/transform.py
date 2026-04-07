@@ -371,9 +371,60 @@ def fill_missing_prices(df):
     return df
 
 
-# ────────────────────────────────────────────────────────────────
-# Очистка одного файла
-# ────────────────────────────────────────────────────────────────
+def select_closest_to_previous(df):
+    """
+    Для каждой группы (store, product_clean, brand, date)
+    выбирает запись, наиболее похожую на предыдущий день
+    """
+    df = df.sort_values("date")
+    result_rows = []
+
+    group_cols = ["store", "product_clean", "brand"]
+
+    for keys, group in df.groupby(group_cols):
+        group = group.sort_values("date")
+
+        prev_price = None
+        prev_qty = None
+
+        for date, day_group in group.groupby("date"):
+
+            if len(day_group) == 1:
+                chosen = day_group.iloc[0]
+
+            else:
+                day_group = day_group.copy()
+
+                if prev_price is not None and prev_qty is not None:
+                    # основной сценарий — сравнение с предыдущим днем
+                    day_group["score"] = (
+                        (day_group["price"] - prev_price).abs().fillna(1e6) +
+                        (day_group["quantity"] - prev_qty).abs().fillna(1e6)
+                    )
+
+                else:
+                    # fallback — если нет предыдущего дня
+                    default_qty, _ = get_default_quantity_unit(keys[1])
+
+                    if default_qty is not None:
+                        day_group["score"] = (
+                            (day_group["quantity"] - default_qty).abs().fillna(1e6)
+                        )
+                    else:
+                        # если вообще нет дефолта → используем цену
+                        median_price = day_group["price"].median()
+                        day_group["score"] = (
+                            (day_group["price"] - median_price).abs().fillna(1e6)
+                        )
+
+                chosen = day_group.sort_values("score").iloc[0]
+
+            result_rows.append(chosen)
+
+            prev_price = chosen["price"]
+            prev_qty = chosen["quantity"]
+
+    return pd.DataFrame(result_rows)
 
 def clean_file(path):
     df = pd.read_csv(path)
@@ -463,9 +514,7 @@ def transform_all():
     # Заполняем пропущенные цены
     full_df = fill_missing_prices(full_df)
 
-    # Удаляем дубликаты (оставляем первую запись)
-    full_df = full_df.drop_duplicates(subset=["store", "product_clean", "quantity", "unit_normalized", "price"],
-                                      keep="first")
+    full_df = select_closest_to_previous(full_df)
 
     # Сортируем и сохраняем
     full_df = full_df.sort_values(["store", "product_clean"])
