@@ -37,7 +37,7 @@ else:
     PRODUCTS = [
         "Яйцо куриное Окское С1 10шт",
         "Батон Коломенский Нарезной 200г",
-        "Молоко Простоквашино отборное пастеризованное",
+        "Молоко пастеризованное ПРОСТОКВАШИНО отборное",
         "Сахар кусковой белый 1кг",
         "Соль пищевая 1кг",
         "Крупа гречневая Мистраль 900г",
@@ -49,7 +49,7 @@ else:
         "Лук репчатый",
         "Морковь",
         "Капуста белокочанная",
-        "Яблоки сезонные"
+        "Яблоки Гала"
     ]
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../data/raw"))
@@ -81,7 +81,7 @@ def main():
 
             try:
                 wait.until(
-                    EC.presence_of_element_located(
+                    EC.presence_of_all_elements_located(
                         (By.CSS_SELECTOR, "lu-product-card")
                     )
                 )
@@ -92,7 +92,11 @@ def main():
 
                 for card in cards[:20]:
                     try:
-                        name = card.text
+                        try:
+                            name_el = card.find_element(By.CSS_SELECTOR, "[class*='title'], [class*='name']")
+                            name = name_el.text.strip()
+                        except:
+                            continue
                         score = fuzz.token_sort_ratio(product.lower(), name.lower())
                         if score > best_score:
                             best_score = score
@@ -100,7 +104,7 @@ def main():
                     except:
                         continue
 
-                if not best or best_score < 40:
+                if not best or best_score < 20:
                     print(f"Не найдено: {product}")
                     results.append({
                         "store": "Лента",

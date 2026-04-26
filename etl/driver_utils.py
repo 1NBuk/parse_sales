@@ -50,7 +50,7 @@ def create_driver(use_uc=False, headless=False, disable_bot_detection=True, rand
             driver = uc.Chrome(
                 options=options,
                 use_subprocess=True,
-                version_main=145
+                version_main=147
             )
 
         else:

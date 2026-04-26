@@ -440,7 +440,7 @@ elif page == "Запуск парсингов":
     PRODUCTS_FILE = os.path.join(BASE_DIR, "products")
     PARSERS_DIR = os.path.join(BASE_DIR, "api", "app_parsers")
     TRANSFORM_SCRIPT = os.path.join(BASE_DIR, "etl", "transformer", "transform.py")
-    EXTERNAL_SCRIPT = os.path.join(BASE_DIR, "etl", "load_external_factors.py")
+    EXTERNAL_SCRIPT = os.path.join(BASE_DIR, "etl", "load_external_factors_app.py")
 
     if not os.path.exists(PARSERS_DIR):
         st.error(f"Нет папки парсеров: {PARSERS_DIR}")

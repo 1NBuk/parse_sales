@@ -1,86 +1,125 @@
 import psycopg2
 import requests
+from datetime import datetime, date as dt
 from xml.etree import ElementTree as ET
+from yahoo_fin import stock_info as si
 import yfinance as yf
 import pandas as pd
-import sys
-import argparse
-from dotenv import load_dotenv
-import os
-
-load_dotenv()
-
-PG_HOST = os.getenv("PG_HOST")
-PG_PASSWORD = os.getenv("PG_PASSWORD")
+PG_HOST = "localhost"
 PG_DATABASE = "prices_db"
 PG_USER = "postgres"
+PG_PASSWORD = "12345"
 
-def get_rate(code, date_obj):
+# Подключение к БД
+conn = psycopg2.connect(
+    host=PG_HOST,
+    database=PG_DATABASE,
+    user=PG_USER,
+    password=PG_PASSWORD
+)
+cursor = conn.cursor()
+
+# 1. Получаем уникальные даты из prices_history
+cursor.execute("""
+    SELECT DISTINCT date
+    FROM prices_history
+    ORDER BY date
+""")
+dates = [row[0] for row in cursor.fetchall()]
+
+# 2. Функции для получения данных
+def get_usd_rub(date_obj):
     url = f"https://www.cbr.ru/scripts/XML_daily.asp?date_req={date_obj.strftime('%d/%m/%Y')}"
-    try:
-        r = requests.get(url)
-        tree = ET.fromstring(r.content)
-        for valute in tree.findall('Valute'):
-            if valute.find('CharCode').text == code:
-                return float(valute.find('Value').text.replace(',', '.'))
-    except:
-        return None
+    r = requests.get(url)
+    tree = ET.fromstring(r.content)
+    for valute in tree.findall('Valute'):
+        if valute.find('CharCode').text == 'USD':
+            return float(valute.find('Value').text.replace(',', '.'))
     return None
 
-def get_oil_price(brent_df, date_obj):
+def get_eur_rub(date_obj):
+    url = f"https://www.cbr.ru/scripts/XML_daily.asp?date_req={date_obj.strftime('%d/%m/%Y')}"
+    r = requests.get(url)
+    tree = ET.fromstring(r.content)
+    for valute in tree.findall('Valute'):
+        if valute.find('CharCode').text == 'EUR':
+            return float(valute.find('Value').text.replace(',', '.'))
+    return None
+
+brent_df = yf.download("BZ=F", period="5y", interval="1d")
+
+def get_oil_price(date_obj):
     try:
-        subset = brent_df[brent_df.index <= pd.Timestamp(date_obj)]
+        date_obj = pd.Timestamp(date_obj)
+
+        subset = brent_df[brent_df.index <= date_obj]
+
         if not subset.empty:
             return round(subset['Close'].iloc[-1].item(), 2)
-    except:
-        return None
+
+    except Exception as e:
+        print("Ошибка Brent:", e)
+
     return None
 
 def get_weather(date_obj):
+    # Москва
+    lat, lon = 55.7558, 37.6173
     url = (
         f"https://archive-api.open-meteo.com/v1/archive?"
-        f"latitude=55.7558&longitude=37.6173"
-        f"&start_date={date_obj}&end_date={date_obj}"
-        f"&daily=temperature_2m_max,temperature_2m_min,precipitation_sum"
+        f"latitude={lat}&longitude={lon}&start_date={date_obj}&end_date={date_obj}"
+        f"&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=Europe/Moscow"
     )
-    try:
-        r = requests.get(url)
-        if r.status_code != 200:
-            return None, None
-        data = r.json()
-        if 'daily' in data:
-            tmax = data['daily']['temperature_2m_max'][0]
-            tmin = data['daily']['temperature_2m_min'][0]
-            return round((tmax+tmin)/2, 2), data['daily']['precipitation_sum'][0]
-    except:
-        pass
+    r = requests.get(url)
+    if r.status_code != 200:
+        print("Ошибка запроса погоды:", r.status_code)
+        return None, None
+    data = r.json()
+    if 'daily' in data:
+        temp_max = data['daily']['temperature_2m_max'][0]
+        temp_min = data['daily']['temperature_2m_min'][0]
+        temp_avg = round((temp_max + temp_min)/2, 2)
+        prec = data['daily']['precipitation_sum'][0]
+        return temp_avg, prec
     return None, None
 
-def fetch_external_factor(date_str, factor):
-    date_obj = pd.to_datetime(date_str).date()
-    brent_df = yf.download("BZ=F", period="5y", interval="1d")
+# 3. Получаем данные и выводим в консоль
+for date_obj in dates[:5]:  # Для примера первые 5 дат
+    usd = get_usd_rub(date_obj)
+    eur = get_eur_rub(date_obj)
+    oil = get_oil_price(date_obj)
+    temp, prec = get_weather(date_obj)
 
-    values = {
-        "usd_rub": get_rate("USD", date_obj),
-        "eur_rub": get_rate("EUR", date_obj),
-        "oil_price": get_oil_price(brent_df, date_obj),
-        "temperature": get_weather(date_obj)[0],
-        "precipitation": get_weather(date_obj)[1]
-    }
+    print(f"Дата: {date_obj}")
+    print(f"USD/RUB: {usd}, EUR/RUB: {eur}, Oil Brent: {oil}, Temp: {temp}, Precipitation: {prec}")
+    print("-" * 50)
 
-    if factor:
-        # вернем только выбранный фактор
-        values = {factor: values.get(factor)}
+for date_obj in dates:
 
-    df = pd.DataFrame([{"date": date_obj, **values}])
-    print(df.to_json(orient="records", date_format="iso"))
-    sys.stdout.flush()
-    return df
+    usd = get_usd_rub(date_obj)
+    eur = get_eur_rub(date_obj)
+    oil = get_oil_price(date_obj)
+    temp, prec = get_weather(date_obj)
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--date", required=True, help="Дата в формате YYYY-MM-DD")
-    parser.add_argument("--factor", required=False, help="Фактор: usd_rub, eur_rub, oil_price, temperature, precipitation")
-    args = parser.parse_args()
+    print(f"Обрабатываем: {date_obj}")
 
-    fetch_external_factor(args.date, args.factor)
+    cursor.execute("""
+        INSERT INTO external_factors
+        (date, usd_rub, eur_rub, oil_price, temperature, precipitation)
+        VALUES (%s,%s,%s,%s,%s,%s)
+        ON CONFLICT (date) DO UPDATE SET
+            usd_rub = EXCLUDED.usd_rub,
+            eur_rub = EXCLUDED.eur_rub,
+            oil_price = EXCLUDED.oil_price,
+            temperature = EXCLUDED.temperature,
+            precipitation = EXCLUDED.precipitation
+    """, (date_obj, usd, eur, oil, temp, prec))
+
+
+# Сохраняем изменения
+conn.commit()
+
+cursor.close()
+conn.close()
+
+print("Готово. External factors загружены.")

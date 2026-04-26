@@ -47,7 +47,7 @@ else:
         "Лук репчатый",
         "Морковь",
         "Капуста белокочанная",
-        "Яблоки сезонные"
+        "Яблоки Гала"
     ]
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../data/raw"))
@@ -88,7 +88,7 @@ def main():
             try:
                 wait.until(
                     EC.presence_of_all_elements_located(
-                        (By.CSS_SELECTOR, "article")
+                        (By.CSS_SELECTOR, "article [class*='title'], article [class*='name']")
                     )
                 )
 
@@ -98,7 +98,11 @@ def main():
 
                 for card in cards:
                     try:
-                        title = card.text.split("\n")[0]
+                        try:
+                            title_el = card.find_element(By.CSS_SELECTOR, "[class*='title'], [class*='name']")
+                            title = title_el.text.strip()
+                        except:
+                            continue
                         score = fuzz.token_sort_ratio(name_only.lower(), title.lower())
                         if score > best_score:
                             best_score = score
@@ -106,7 +110,7 @@ def main():
                     except:
                         continue
 
-                if not best_card or best_score < 25:
+                if not best_card or best_score < 20:
                     print(f"Дикси — {product} — товар не найден")
                     results.append({
                         "store": "Дикси",

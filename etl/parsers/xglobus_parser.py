@@ -47,7 +47,7 @@ else:
         "Лук репчатый",
         "морковь вес",
         "Капуста белокочанная",
-        "Яблоки сезонные"
+        "Яблоки Гала"
     ]
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../data/raw"))

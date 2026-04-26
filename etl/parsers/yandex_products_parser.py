@@ -47,7 +47,7 @@ else:
         "Лук репчатый",
         "Социальный товар Морковь",
         "Капуста белокочанная",
-        "Яблоки сезонные"
+        "Яблоки Гала"
     ]
 
 def pause(a=0.6, b=1.6):
@@ -131,7 +131,7 @@ def main():
 
     try:
         for query in products:
-            print(f"\nПоиск: {query}")
+            print(f"Поиск: {query}")
             url = BASE_URL.format(query=quote_plus(query))
             driver.get(url)
             pause(1.5, 2.5)
@@ -175,7 +175,6 @@ def main():
         writer.writeheader()
         writer.writerows(results)
 
-    print("\nГотово")
     print(f"Сохранено записей: {len(results)}")
     print(f"Файл: {OUTPUT_PATH}")
 

@@ -76,13 +76,11 @@ def run_all_parsers():
     parser_files = sorted(f for f in os.listdir(PARSERS_DIR) if f.endswith("_parser.py"))
     log(f"Найдено парсеров: {len(parser_files)}")
     errors = []
-    with ProcessPoolExecutor(max_workers=4) as executor:
+    with ProcessPoolExecutor(max_workers=2) as executor:
         futures = [executor.submit(run_parser, parser) for parser in parser_files]
         for future in as_completed(futures):
             parser, success, output = future.result()
-            log("===================================")
             log(f"Результат парсера: {parser}")
-            log("===================================")
             if output:
                 log(output)
             if success:
