@@ -182,6 +182,28 @@ def normalize_store(store):
     # Если не нашли, возвращаем оригинал (но без лишних символов)
     return text
 
+def normalize_product_key(name: str) -> str:
+    if pd.isna(name):
+        return None
+
+    name = str(name).lower()
+
+    # убираем мусор
+    name = re.sub(r'[^a-zа-я0-9\s]', ' ', name)
+
+    # стоп-слова
+    stopwords = [
+        'г', 'гр', 'кг', 'мл', 'л', 'шт',
+        'уп', 'упаковка', 'пачка',
+        'с0', 'с1', 'с2',
+        'охлажденное', 'охлажденная',
+        'без', 'кожи'
+    ]
+
+    words = [w for w in name.split() if w not in stopwords]
+    words = sorted(words)
+
+    return " ".join(words) if words else None
 
 def extract_brand(name, product_clean=None):
     """Определяет бренд по названию продукта"""
@@ -440,9 +462,8 @@ def clean_file(path):
 
     # Обрабатываем product (убираем невидимые символы)
     df["product"] = df["product"].apply(remove_invisible_chars)
-
-    # Исключаем семена и посадочный материал
-    df = df[~df["product"].apply(is_excluded_product)]
+    df["is_seed"] = df["product"].apply(is_seed_product)
+    df = df[~df["is_seed"]]
 
     # Обрабатываем цену
     df["price"] = df["price"].apply(parse_price)
@@ -456,8 +477,8 @@ def clean_file(path):
         df["quantity"] = None
         df["unit_normalized"] = None
 
-    # Очищаем название продукта
     df["product_clean"] = df["product"].apply(clean_product_name)
+    df["product_norm"] = df["product"].apply(normalize_product_key)
 
     # Удаляем строки без очищенного названия
     df = df[df["product_clean"].notna()].copy()
@@ -477,12 +498,47 @@ def clean_file(path):
     if "date" in df.columns:
         df["date"] = pd.to_datetime(df["date"], errors="coerce").dt.date
 
-    return df[["store", "product_clean", "brand", "price", "quantity", "unit_normalized", "date"]]
+    return df[[
+        "store",
+        "product_clean",
+        "product_norm",
+        "brand",
+        "price",
+        "quantity",
+        "unit_normalized",
+        "date"
+    ]]
 
 
-# ────────────────────────────────────────────────────────────────
-# Основной пайплайн
-# ────────────────────────────────────────────────────────────────
+def is_seed_product(name):
+    if pd.isna(name):
+        return False
+
+    text = str(name).lower()
+    return any(keyword in text for keyword in EXCLUDE_KEYWORDS)
+
+def update_product_groups_if_needed(df):
+    df = df.copy()
+
+    # базовый ключ (если нет — fallback)
+    df["group_key"] = df["product_norm"].fillna(df["product_clean"])
+
+    # нормализация ключа (убираем порядок слов)
+    df["group_key"] = df["group_key"].apply(
+        lambda x: " ".join(sorted(str(x).split())) if pd.notna(x) else x
+    )
+
+    # частотный фильтр: берем самое частое название как канон
+    mapping = {}
+
+    for key, group in df.groupby("group_key"):
+        most_common = group["product_clean"].value_counts().idxmax()
+        mapping[key] = most_common
+
+    df["product_group"] = df["group_key"].map(mapping)
+
+    return df
+
 
 def transform_all():
     frames = []
@@ -504,6 +560,8 @@ def transform_all():
 
     frames = [f for f in frames if not f.empty]
     full_df = pd.concat(frames, ignore_index=True)
+    full_df = update_product_groups_if_needed(full_df)
+    full_df["product_norm"] = full_df["product_norm"].fillna(full_df["product_clean"])
     full_df["price"] = pd.to_numeric(full_df["price"], errors="coerce")
     full_df["quantity"] = pd.to_numeric(full_df["quantity"], errors="coerce")
     full_df = full_df.replace("", None)
@@ -519,8 +577,17 @@ def transform_all():
 
     # Сортируем и сохраняем
     full_df = full_df.sort_values(["store", "product_clean"])
-    full_df = full_df[["store", "product_clean", "brand", "price", "quantity", "unit_normalized", "date"]]
-
+    full_df = full_df[[
+        "store",
+        "product_group",
+        "product_clean",
+        "product_norm",
+        "brand",
+        "price",
+        "quantity",
+        "unit_normalized",
+        "date"
+    ]]
     output_path = os.path.join(CLEAN_DIR, "clean_prices.csv")
     full_df = full_df.replace({np.nan: None})
     full_df.to_csv(output_path, index=False, encoding="utf-8-sig")

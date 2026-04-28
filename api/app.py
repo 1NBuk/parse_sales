@@ -231,17 +231,23 @@ elif page == "Таблицы":
 elif page == "Графики":
     import plotly.express as px
 
-    st.header("Графики")
+    st.header("Графики по группам товаров")
 
     query = """
     SELECT 
         ph.date,
         ph.price,
         ph.quantity,
+
+        ph.product_id,
+        pg.group_name,
+
         p.name as product_name,
         b.name as brand_name,
         s.name as store_name
+
     FROM prices_history ph
+    LEFT JOIN product_groups pg ON ph.product_id = pg.product_id
     JOIN products p ON ph.product_id = p.id
     JOIN brands b ON p.brand_id = b.id
     JOIN stores s ON ph.store_id = s.id
@@ -250,25 +256,44 @@ elif page == "Графики":
     df = pd.read_sql(query, conn)
     df["date"] = pd.to_datetime(df["date"])
 
+    # ---------------------------
+    # SIDEBAR ФИЛЬТРЫ
+    # ---------------------------
     st.sidebar.header("Фильтры")
 
-    selected_product = st.sidebar.selectbox(
-        "Продукт",
-        sorted(df["product_name"].unique())
-    )
+    # ✅ выбор ГРУППЫ
+    groups = sorted(df["group_name"].dropna().unique())
+    selected_group = st.sidebar.selectbox("Группа товаров", groups)
 
+    df_filtered = df[df["group_name"] == selected_group]
+
+    # бренды
     selected_brand = st.sidebar.multiselect(
         "Бренд",
-        sorted(df["brand_name"].unique())
+        sorted(df_filtered["brand_name"].unique())
     )
+    if selected_brand:
+        df_filtered = df_filtered[df_filtered["brand_name"].isin(selected_brand)]
 
+    # магазины
     selected_store = st.sidebar.multiselect(
         "Магазин",
-        sorted(df["store_name"].unique())
+        sorted(df_filtered["store_name"].unique())
     )
+    if selected_store:
+        df_filtered = df_filtered[df_filtered["store_name"].isin(selected_store)]
 
+    # период
     date_range = st.sidebar.date_input("Период", [])
+    if len(date_range) == 2:
+        df_filtered = df_filtered[
+            (df_filtered["date"] >= pd.to_datetime(date_range[0])) &
+            (df_filtered["date"] <= pd.to_datetime(date_range[1]))
+        ]
 
+    # ---------------------------
+    # НАСТРОЙКИ ГРАФИКА
+    # ---------------------------
     metric = st.selectbox("Метрика", ["price", "quantity"])
 
     chart_type = st.selectbox(
@@ -288,20 +313,9 @@ elif page == "Графики":
 
     show_rolling = st.checkbox("Скользящее среднее (7 дней)")
 
-    df_filtered = df[df["product_name"] == selected_product]
-
-    if selected_brand:
-        df_filtered = df_filtered[df_filtered["brand_name"].isin(selected_brand)]
-
-    if selected_store:
-        df_filtered = df_filtered[df_filtered["store_name"].isin(selected_store)]
-
-    if len(date_range) == 2:
-        df_filtered = df_filtered[
-            (df_filtered["date"] >= pd.to_datetime(date_range[0])) &
-            (df_filtered["date"] <= pd.to_datetime(date_range[1]))
-            ]
-
+    # ---------------------------
+    # ПОДГОТОВКА ДАННЫХ
+    # ---------------------------
     if group_by == "По месяцам":
         df_filtered["period"] = df_filtered["date"].dt.to_period("M").astype(str)
         x_col = "period"
@@ -309,6 +323,9 @@ elif page == "Графики":
         df_filtered["period"] = df_filtered["date"]
         x_col = "period"
 
+    # ---------------------------
+    # ПОСТРОЕНИЕ ГРАФИКА
+    # ---------------------------
     if compare_by != "Нет":
         df_plot = df_filtered.groupby([x_col, compare_by])[metric].mean().reset_index()
 
@@ -318,6 +335,7 @@ elif page == "Графики":
             fig = px.bar(df_plot, x=x_col, y=metric, color=compare_by)
         else:
             fig = px.scatter(df_plot, x=x_col, y=metric, color=compare_by)
+
     else:
         df_plot = df_filtered.groupby(x_col)[metric].mean().reset_index()
 
@@ -332,11 +350,19 @@ elif page == "Графики":
             fig = px.scatter(df_plot, x=x_col, y=metric)
 
         if show_rolling:
-            fig.add_scatter(x=df_plot[x_col], y=df_plot["rolling"], mode="lines", name="rolling_7")
+            fig.add_scatter(
+                x=df_plot[x_col],
+                y=df_plot["rolling"],
+                mode="lines",
+                name="rolling_7"
+            )
 
     st.plotly_chart(fig, use_container_width=True)
 
-    st.subheader("Данные")
+    # ---------------------------
+    # ТАБЛИЦА
+    # ---------------------------
+    st.subheader("Данные (после фильтрации)")
     st.dataframe(df_filtered.head(200))
 
 elif page == "Просмотр предсказаний":

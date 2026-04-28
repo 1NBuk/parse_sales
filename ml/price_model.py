@@ -1,22 +1,20 @@
 import os
 import pandas as pd
+import numpy as np
 import psycopg2
-from catboost import CatBoostRegressor
 from dotenv import load_dotenv
-import os
-
+from xgboost import XGBRegressor
+import joblib
 load_dotenv()
-
-PG_HOST = os.getenv("PG_HOST")
-PG_PASSWORD = os.getenv("PG_PASSWORD")
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 DB_CONFIG = {
-    "host": PG_HOST,
+    "host": os.getenv("PG_HOST"),
     "database": "prices_db",
     "user": "postgres",
-    "password": PG_PASSWORD
+    "password": os.getenv("PG_PASSWORD")
 }
 
-MODEL_PATH = "catboost_price_model.cbm"
+MODEL_PATH = "xgb_price_model.json"
 TEST_DAYS = 7
 
 
@@ -28,6 +26,7 @@ def load_data():
         ph.date,
         ph.price,
         ph.quantity,
+        ph.unit,
 
         p.id as product_id,
         s.id as store_id,
@@ -58,24 +57,38 @@ def load_data():
     return df
 
 
+def normalize(unit, qty):
+    if unit == "pcs":
+        return qty * 0.06
+    elif unit == "g":
+        return qty / 1000
+    elif unit == "ml":
+        return qty / 1000
+    return np.nan
+
+
 def build_features(df):
+    df["date"] = pd.to_datetime(df["date"])
+
+    df["kg"] = df.apply(lambda x: normalize(x["unit"], x["quantity"]), axis=1)
+    df = df.dropna(subset=["kg", "price"])
+
+    df["price_per_kg"] = df["price"] / df["kg"]
+
     df = df.sort_values(["product_id", "store_id", "date"])
+    g = df.groupby(["product_id", "store_id"])
 
-    group = df.groupby(["product_id", "store_id"])
+    df["price_lag_1"] = g["price_per_kg"].shift(1)
+    df["price_lag_3"] = g["price_per_kg"].shift(3)
+    df["price_lag_7"] = g["price_per_kg"].shift(7)
+    df["price_lag_14"] = g["price_per_kg"].shift(14)
 
-    df["price_lag_1"] = group["price"].shift(1)
-    df["price_lag_3"] = group["price"].shift(3)
-    df["price_lag_7"] = group["price"].shift(7)
-    df["price_lag_14"] = group["price"].shift(14)
+    df["price_mean_7"] = g["price_per_kg"].transform(lambda x: x.rolling(7).mean())
+    df["price_std_7"] = g["price_per_kg"].transform(lambda x: x.rolling(7).std())
 
-    df["price_mean_7"] = group["price"].transform(lambda x: x.rolling(7).mean())
-    df["price_std_7"] = group["price"].transform(lambda x: x.rolling(7).std())
-
-    df["price_diff_1"] = df["price"] - df["price_lag_1"]
+    df["price_diff_1"] = df["price_per_kg"] - df["price_lag_1"]
 
     df = df.dropna()
-    df = df.sort_values("date")
-
     return df
 
 
@@ -85,87 +98,55 @@ def split_data(df):
     train = df[df["date"] <= split_date]
     test = df[df["date"] > split_date]
 
-    X_train = train.drop(columns=["price", "date"])
-    y_train = train["price"]
+    X_train = train.drop(columns=["price", "price_per_kg", "date", "unit", "quantity"])
+    y_train = train["price_per_kg"]
 
-    X_test = test.drop(columns=["price", "date"])
-    y_test = test["price"]
+    X_test = test.drop(columns=["price", "price_per_kg", "date", "unit", "quantity"])
+    y_test = test["price_per_kg"]
 
     return X_train, y_train, X_test, y_test
 
 
 def train_model(X_train, y_train, X_test, y_test):
-    cat_features = [
-        "product_id",
-        "store_id",
-        "brand_id",
-        "is_weekend",
-        "is_holiday"
-    ]
+    X_train = pd.get_dummies(X_train)
+    X_test = pd.get_dummies(X_test)
 
-    model = CatBoostRegressor(
-        iterations=500,
-        depth=6,
-        learning_rate=0.03,
-        l2_leaf_reg=10,
-        random_strength=1,
-        loss_function="RMSE",
-        eval_metric="RMSE",
-        random_seed=42,
-        verbose=100
+    X_train, X_test = X_train.align(X_test, join="left", axis=1, fill_value=0)
+
+    model = XGBRegressor(
+        n_estimators=800,
+        learning_rate=0.05,
+        max_depth=6,
+        subsample=0.8,
+        colsample_bytree=0.8,
+        random_state=42
     )
 
-    if os.path.exists(MODEL_PATH):
-        print("Дообучение существующей модели")
-        model.load_model(MODEL_PATH)
+    model.fit(X_train, y_train)
 
-        model.fit(
-            X_train,
-            y_train,
-            cat_features=cat_features,
-            eval_set=(X_test, y_test),
-            init_model=MODEL_PATH,
-            use_best_model=False
-        )
-    else:
-        print("Обучение с нуля")
+    preds = model.predict(X_test)
 
-        model.fit(
-            X_train,
-            y_train,
-            cat_features=cat_features,
-            eval_set=(X_test, y_test),
-            use_best_model=True
-        )
+    rmse = np.sqrt(np.mean((preds - y_test) ** 2))
+    mae = np.mean(np.abs(preds - y_test))
+    mape = np.mean(np.abs((y_test - preds) / y_test)) * 100
+    r2 = 1 - np.sum((y_test - preds) ** 2) / np.sum((y_test - np.mean(y_test)) ** 2)
+
+    print("RMSE:", rmse)
+    print("MAE:", mae)
+    print("MAPE:", mape)
+    print("R2:", r2)
 
     model.save_model(MODEL_PATH)
-
+    feature_columns = X_train.columns.tolist()
+    joblib.dump(feature_columns, os.path.join(BASE_DIR, "ml", "features.pkl"))
     return model
 
 
-def evaluate(model, X_test, y_test):
-    preds = model.predict(X_test)
-    rmse = ((preds - y_test) ** 2).mean() ** 0.5
-    print(f"RMSE: {rmse:.4f}")
-
-
 def main():
-    print("Загрузка данных")
     df = load_data()
-
-    print("Генерация фичей")
     df = build_features(df)
-
-    print("Разделение данных")
     X_train, y_train, X_test, y_test = split_data(df)
-
-    print("Обучение модели")
-    model = train_model(X_train, y_train, X_test, y_test)
-
-    print("Оценка")
-    evaluate(model, X_test, y_test)
-
-    print("Готово")
+    train_model(X_train, y_train, X_test, y_test)
 
 
 if __name__ == "__main__":
