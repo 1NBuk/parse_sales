@@ -3,6 +3,7 @@ import pandas as pd
 import subprocess
 import psycopg2
 from catboost import CatBoostRegressor
+from xgboost import XGBRegressor
 import os
 import sys
 import tempfile
@@ -25,7 +26,9 @@ DB_CONFIG = {
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(BASE_DIR)
 MODEL_PATH = os.path.join(BASE_DIR, "ml", "catboost_price_model.cbm")
+FEATURES_PATH = os.path.join(BASE_DIR, "ml", "catboost_features.json")
 
+CAT_FEATURES = ["product_id", "store_id", "brand_id", "group_name", "is_weekend", "is_holiday"]
 from etl.upload_to_postgres import upload
 
 conn = psycopg2.connect(**DB_CONFIG)
@@ -40,74 +43,65 @@ def build_features(df):
     df["price_lag_14"] = group["price"].shift(14)
     df["price_mean_7"] = group["price"].transform(lambda x: x.rolling(7).mean())
     df["price_std_7"] = group["price"].transform(lambda x: x.rolling(7).std())
-    df["price_diff_1"] = df["price"] - df["price_lag_1"]
     df = df.dropna()
     return df
 
 
-def forecast_future(df, model, days=14):
+def forecast_future(df: pd.DataFrame, model: CatBoostRegressor, features: list, days: int = 14):
+    """
+    Итеративный прогноз на `days` дней вперёд.
+    На каждом шаге пересчитываем лаги и rolling из уже предсказанных цен —
+    точно так же, как build_features делает это на обучении.
+    """
     df = df.sort_values("date").copy()
     future_rows = []
 
-    cat_features = ["product_id", "store_id", "brand_id", "day_of_week",
-                    "week_of_year", "month", "is_weekend", "is_holiday"]
+    for _ in range(days):
+        last = df.tail(14)  # окно для расчёта лагов
+        new_row = last.iloc[-1:].copy()
 
-    num_features = ["quantity", "usd_rub", "eur_rub", "oil_price", "temperature", "precipitation",
-                    "price_lag_1", "price_lag_3", "price_lag_7", "price_lag_14",
-                    "price_mean_7", "price_std_7", "price_diff_1"]
+        # --- лаги ---
+        new_row["price_lag_1"] = last["price"].iloc[-1]
+        new_row["price_lag_3"] = last["price"].iloc[-3] if len(last) >= 3 else last["price"].mean()
+        new_row["price_lag_7"] = last["price"].iloc[-7] if len(last) >= 7 else last["price"].mean()
+        new_row["price_lag_14"] = last["price"].iloc[-14] if len(last) >= 14 else last["price"].mean()
 
-    for i in range(days):
-        last_rows = df.tail(14)
-        new_row = last_rows.iloc[-1:].copy()
+        # --- diff ---
+        new_row["price_diff_1"] = (
+            last["price"].iloc[-1] - last["price"].iloc[-2]
+            if len(last) >= 2 else 0
+        )
 
-        new_row["price_lag_1"] = last_rows["price"].iloc[-1] if len(last_rows) >= 1 else 0
-        new_row["price_lag_3"] = last_rows["price"].iloc[-3] if len(last_rows) >= 3 else last_rows[
-            "price"].mean() if len(last_rows) > 0 else 0
-        new_row["price_lag_7"] = last_rows["price"].iloc[-7] if len(last_rows) >= 7 else last_rows[
-            "price"].mean() if len(last_rows) > 0 else 0
-        new_row["price_lag_14"] = last_rows["price"].iloc[-14] if len(last_rows) >= 14 else last_rows[
-            "price"].mean() if len(last_rows) > 0 else 0
-        new_row["price_mean_7"] = last_rows["price"].tail(7).mean() if len(last_rows) >= 7 else last_rows[
-            "price"].mean() if len(last_rows) > 0 else 0
-        new_row["price_std_7"] = last_rows["price"].tail(7).std() or 0 if len(last_rows) >= 7 else 0
-        new_row["price_diff_1"] = new_row["price_lag_1"].iloc[0] - last_rows["price"].iloc[-2] if len(
-            last_rows) > 1 else 0
+        # --- rolling ---
+        tail7 = last["price"].tail(7)
+        new_row["price_mean_7"] = tail7.mean()
+        new_row["price_std_7"] = tail7.std() if len(tail7) >= 2 else 0.0
 
-        if len(last_rows) >= 7:
-            new_row["quantity"] = last_rows["quantity"].tail(7).mean()
-        elif len(last_rows) > 0:
-            new_row["quantity"] = last_rows["quantity"].mean()
-        else:
-            new_row["quantity"] = 0
+        # --- группировки ---
+        new_row["group_median"] = last["price"].median()
+        new_row["price_vs_group"] = new_row["price_lag_1"].iloc[0] / (new_row["group_median"].iloc[0] + 1e-6)
+        new_row["store_mean"] = last["price"].mean()
+        new_row["price_vs_store"] = new_row["price_lag_1"].iloc[0] / (new_row["store_mean"].iloc[0] + 1e-6)
 
-        for col in ["is_weekend", "is_holiday"]:
-            if col in new_row.columns:
-                new_row[col] = new_row[col].fillna(False).apply(lambda x: "1" if x else "0")
+        # --- прочее ---
+        new_row["quantity"] = last["quantity"].tail(7).mean()
+        new_row["date"] = last["date"].iloc[-1] + pd.Timedelta(days=1)
 
-        new_row["date"] = new_row["date"].iloc[0] + pd.Timedelta(days=1)
+        # --- категориальные как строки (как при обучении) ---
+        for col in CAT_FEATURES:
+            new_row[col] = str(new_row[col].iloc[0])
 
-        X = pd.DataFrame()
-        X["quantity"] = new_row["quantity"]
+        # --- собираем X строго по списку фичей из train.py ---
+        X = new_row[features]
 
-        for col in cat_features:
-            X[col] = new_row[col].astype(str).replace('nan', 'unknown')
-
-        for col in num_features:
-            if col != "quantity":
-                X[col] = pd.to_numeric(new_row[col], errors='coerce').fillna(0).astype(float)
-
-        try:
-            pred = model.predict(X)[0]
-            new_row["price"] = pred
-        except Exception as e:
-            st.error(f"Ошибка при прогнозе: {e}")
-            raise e
+        pred = float(model.predict(X)[0])
+        new_row["price"] = pred
 
         df = pd.concat([df, new_row], ignore_index=True)
-        future_rows.append(new_row)
+        future_rows.append(new_row.copy())
 
-    future_df = pd.concat(future_rows, ignore_index=True) if future_rows else pd.DataFrame()
-    return future_df
+    return pd.concat(future_rows, ignore_index=True)
+
 
 
 REQUIRED_COLUMNS = [
@@ -261,7 +255,6 @@ elif page == "Графики":
     # ---------------------------
     st.sidebar.header("Фильтры")
 
-    # ✅ выбор ГРУППЫ
     groups = sorted(df["group_name"].dropna().unique())
     selected_group = st.sidebar.selectbox("Группа товаров", groups)
 
@@ -368,20 +361,31 @@ elif page == "Графики":
 elif page == "Просмотр предсказаний":
     st.header("Прогноз цен (будущее)")
 
-    model = CatBoostRegressor()
-    model.load_model(MODEL_PATH)
 
+    @st.cache_resource
+    def load_model_and_features():
+        model = CatBoostRegressor()
+        model.load_model(MODEL_PATH)
+        with open(FEATURES_PATH, "r", encoding="utf-8") as f:
+            meta = json.load(f)
+        return model, meta["features"]
+
+
+    model, features = load_model_and_features()
+
+    # --- Данные из БД ---
     query = """
     SELECT
         ph.date,
         ph.price,
         ph.quantity,
-        p.id as product_id,
-        p.name as product_name,
-        s.id as store_id,
-        s.name as store_name,
-        b.id as brand_id,
-        b.name as brand_name,
+        p.id   AS product_id,
+        p.name AS product_name,
+        s.id   AS store_id,
+        s.name AS store_name,
+        pg.group_name,
+        b.id   AS brand_id,
+        b.name AS brand_name,
         c.day_of_week,
         c.week_of_year,
         c.month,
@@ -393,54 +397,129 @@ elif page == "Просмотр предсказаний":
         ef.temperature,
         ef.precipitation
     FROM prices_history ph
-    JOIN products p ON ph.product_id = p.id
-    JOIN brands b ON p.brand_id = b.id
-    JOIN stores s ON ph.store_id = s.id
-    JOIN calendar c ON ph.date = c.date
+    JOIN products p       ON ph.product_id = p.id
+    JOIN brands b         ON p.brand_id    = b.id
+    JOIN stores s         ON ph.store_id   = s.id
+    JOIN calendar c       ON ph.date       = c.date
     LEFT JOIN external_factors ef ON ph.date = ef.date
+    LEFT JOIN product_groups pg ON ph.product_id = pg.product_id
     """
-    df = pd.read_sql(query, conn)
 
-    products = df["product_name"].unique()
+    df_all = pd.read_sql(query, conn)
+    df_all["date"] = pd.to_datetime(df_all["date"])
+
+    # =========================
+    # ФИЛЬТРЫ
+    # =========================
+    st.sidebar.header("Фильтры")
+
+    df = df_all.copy()
+
+    # --- группа товаров ---
+    groups = sorted(df["group_name"].dropna().unique())
+    selected_group = st.sidebar.selectbox("Группа товаров", ["Все"] + groups)
+
+    if selected_group != "Все":
+        df = df[df["group_name"] == selected_group]
+
+    # --- продукт ---
+    products = sorted(df["product_name"].unique())
     selected_product = st.sidebar.selectbox("Продукт", products)
     df = df[df["product_name"] == selected_product]
 
-    brands = df["brand_name"].unique()
+    # --- бренд ---
+    brands = sorted(df["brand_name"].unique())
     selected_brand = st.sidebar.multiselect("Бренд", brands)
     if selected_brand:
         df = df[df["brand_name"].isin(selected_brand)]
 
-    stores = df["store_name"].unique()
+    # --- магазин ---
+    stores = sorted(df["store_name"].unique())
     selected_store = st.sidebar.multiselect("Магазин", stores)
     if selected_store:
         df = df[df["store_name"].isin(selected_store)]
 
+    # --- период ---
     date_range = st.sidebar.date_input("Период", [])
     if len(date_range) == 2:
-        df = df[(df["date"] >= pd.to_datetime(date_range[0])) & (df["date"] <= pd.to_datetime(date_range[1]))]
+        df = df[
+            (df["date"] >= pd.to_datetime(date_range[0])) &
+            (df["date"] <= pd.to_datetime(date_range[1]))
+            ]
 
-    df = df.sort_values("date")
+    # =========================
+    # ПОДГОТОВКА
+    # =========================
+    df = df.sort_values("date").reset_index(drop=True)
 
+    # категориальные как строки (важно для CatBoost)
+    for col in CAT_FEATURES:
+        df[col] = df[col].astype(str)
+
+    # =========================
+    # ВИЗУАЛИЗАЦИЯ ИСТОРИИ
+    # =========================
     st.subheader("Исторические данные")
     st.line_chart(df.set_index("date")["price"])
+    st.caption(
+        f"Строк в выборке: {len(df)} | Последняя дата: {df['date'].max().date()}"
+    )
 
+    # =========================
+    # ПРОГНОЗ
+    # =========================
     days = st.slider("Прогноз на дней", 1, 30, 7)
 
     if st.button("Спрогнозировать"):
-        if df.empty:
-            st.warning("Нет данных для выбранных фильтров!")
-        else:
-            future_df = forecast_future(df, model, days)
 
-            df["type"] = "history"
+        if len(df) < 14:
+            st.warning("Нужно минимум 14 дней истории для прогноза.")
+        else:
+            with st.spinner("Считаем прогноз..."):
+                future_df = forecast_future(df, model, features, days)
+
             future_df["type"] = "forecast"
-            full_df = pd.concat([df, future_df], ignore_index=True)
+
+            hist_df = df[["date", "price"]].copy()
+            hist_df["type"] = "history"
+
+            full_df = pd.concat(
+                [hist_df, future_df[["date", "price", "type"]]],
+                ignore_index=True
+            )
 
             st.subheader("Факт + Прогноз")
-            st.line_chart(full_df.set_index("date")["price"])
+
+            import plotly.express as px
+
+            fig = px.line(
+                full_df,
+                x="date",
+                y="price",
+                color="type",
+                color_discrete_map={
+                    "history": "#1f77b4",
+                    "forecast": "#ff7f0e"
+                }
+            )
+
+            st.plotly_chart(fig, use_container_width=True)
 
             st.subheader("Таблица прогноза")
-            st.dataframe(future_df[["date", "price"]])
+
+            st.dataframe(
+                future_df[["date", "price"]]
+                .rename(columns={
+                    "date": "Дата",
+                    "price": "Прогноз цены (руб.)"
+                })
+                .assign(
+                    **{
+                        "Дата": lambda x: x["Дата"].dt.date,
+                        "Прогноз цены (руб.)": lambda x: x["Прогноз цены (руб.)"].round(2)
+                    }
+                )
+            )
 
 elif page == "Добавление данных":
     st.header("Добавление своих данных")
