@@ -130,6 +130,15 @@ def validate_csv(df):
 
     return df
 
+def safe_decode(data):
+    try:
+        return data.decode("utf-8")
+    except:
+        try:
+            return data.decode("cp1251")
+        except:
+            return data.decode("utf-8", errors="ignore")
+
 
 st.set_page_config(page_title="Price Forecast App", layout="wide")
 
@@ -568,7 +577,6 @@ elif page == "Запуск парсингов":
     parsers = [f for f in os.listdir(PARSERS_DIR) if f.endswith(".py")]
     selected_parser = st.selectbox("Выберите магазин (парсер)", parsers)
     parser_path = os.path.join(PARSERS_DIR, selected_parser)
-
     st.subheader("Выбор продуктов")
 
     col1, col2 = st.columns([1, 2])
@@ -633,18 +641,29 @@ elif page == "Запуск парсингов":
         status_text.text("Запуск парсера...")
         progress_bar.progress(10)
 
-        process = subprocess.Popen(
-            [sys.executable, parser_path],
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True
-        )
+        if selected_parser == 'globus.py' or selected_parser == 'magnit.py':
+            process = subprocess.Popen(
+                [sys.executable, parser_path],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE
+            )
+            stdout, stderr = process.communicate(input=products_json.encode("utf-8"))
 
+            stdout = safe_decode(stdout)
+            stderr = safe_decode(stderr)
+        else:
+            process = subprocess.Popen(
+                [sys.executable, parser_path],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
+            )
+            stdout, stderr = process.communicate(input=products_json)
         progress_bar.progress(30)
         status_text.text("Парсинг данных...")
 
-        stdout, stderr = process.communicate(input=products_json)
 
         progress_bar.progress(90)
         status_text.text("Обработка результатов...")

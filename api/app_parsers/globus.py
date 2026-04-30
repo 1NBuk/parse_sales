@@ -3,81 +3,67 @@ import pandas as pd
 from datetime import datetime
 import re
 import os
+import io
 import sys
 import json
-import warnings
 import logging
+import warnings
+import traceback
+sys.stdin = io.TextIOWrapper(sys.stdin.buffer, encoding='utf-8')
+# ===================== НАСТРОЙКА =====================
+warnings.filterwarnings("ignore")
+logging.getLogger("selenium").setLevel(logging.CRITICAL)
 
-warnings.filterwarnings('ignore')
-os.environ['WDM_LOG'] = '0'
-os.environ['WDM_PRINT'] = '0'
-
-logging.getLogger('selenium').setLevel(logging.ERROR)
-logging.getLogger('urllib3').setLevel(logging.ERROR)
-logging.getLogger('webdriver_manager').setLevel(logging.ERROR)
+# Принудительно UTF-8 для stdout (важно на Windows с cp1251)
+if sys.stdout.encoding != "utf-8":
+    sys.stdout.reconfigure(encoding="utf-8")
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
 sys.path.insert(0, BASE_DIR)
 
-original_stdout = sys.stdout
-sys.stdout = sys.stderr
 
-try:
-    from etl.driver_utils import create_driver
-except ImportError:
-    import importlib.util
-    spec = importlib.util.spec_from_file_location(
-        "driver_utils",
-        os.path.join(os.path.dirname(__file__), "driver_utils.py")
-    )
-    driver_utils = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(driver_utils)
-    create_driver = driver_utils.create_driver
+# ===================== INPUT =====================
+def read_products():
+    """Читает продукты из stdin (приложение), argv (ручной запуск) или дефолтный список."""
+    # 1. stdin (запуск из приложения через subprocess.Popen)
+    if not sys.stdin.isatty():
+        try:
+            data = sys.stdin.read().strip()
+            if data:
+                return json.loads(data)
+        except Exception:
+            pass
 
-sys.stdout = original_stdout
+    # 2. аргументы командной строки (ручной запуск python globus.py '["Соль"]')
+    if len(sys.argv) > 1:
+        try:
+            return json.loads(sys.argv[1])
+        except Exception:
+            return [sys.argv[1]]
 
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from rapidfuzz import fuzz
-
-try:
-    input_data = sys.stdin.read()
-    if input_data:
-        PRODUCTS = json.loads(input_data)
-    else:
-        PRODUCTS = []
-    print(f"Получено продуктов: {len(PRODUCTS)}", file=sys.stderr)
-except Exception as e:
-    PRODUCTS = []
-    print(f"Ошибка чтения: {e}", file=sys.stderr)
-
-if not PRODUCTS:
-    PRODUCTS = [
+    # 3. дефолтный список для отладки
+    return [
         "Яйцо куриное Окское С1 10шт",
         "Батон Коломенский Нарезной 200г",
         "Молоко Простоквашино отборное",
         "Сахар кусковой белый 1кг",
-        "Соль пищевая 1кг",
-        "Крупа гречневая Мистраль 900г",
-        "Масло Олейна подсолнечное 1л",
-        "Масло Брест-Литовск сливочное 82,5% 180г",
-        "Филе цыплят-бройлеров охлаждённое Петелинка",
-        "Чай Greenfield Golden Ceylon 100г",
-        "Картофель белый 1кг",
-        "Лук репчатый",
-        "морковь вес",
-        "Капуста белокочанная",
-        "Яблоки сезонные"
+        "Соль пищевая 1кг"
     ]
 
-BASE_DIR_DATA = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../data/raw"))
-OUTPUT_FILE = os.path.join(BASE_DIR_DATA, "globus_prices.csv")
-os.makedirs(BASE_DIR_DATA, exist_ok=True)
+
+# ===================== UTILS =====================
+def log(msg):
+    """Безопасный вывод в stderr с автоматической заменой проблемных символов."""
+    try:
+        print(msg, file=sys.stderr, flush=True)
+    except UnicodeEncodeError:
+        # Если stderr не может закодировать символ (cp1251 на Windows) - заменяем на '?'
+        safe_msg = str(msg).encode('cp1251', errors='replace').decode('cp1251')
+        print(safe_msg, file=sys.stderr, flush=True)
 
 
 def split_name_unit(product: str):
+    """Разделяет название и единицу измерения (например 'Соль 1кг' -> ('Соль', '1кг'))."""
     match = re.search(r"(\d+(\.\d+)?\s?(г|кг|мл|л|шт))", product, re.IGNORECASE)
     if match:
         return product.replace(match.group(1), "").strip(), match.group(1)
@@ -85,66 +71,120 @@ def split_name_unit(product: str):
 
 
 def normalize_product_name(name: str) -> str:
+    """Нормализует специфичные названия продуктов."""
     return "Яблоки" if name.lower().strip() == "яблоки сезонные" else name
 
 
 def parse_price(price_main, price_sub_list):
+    """Собирает цену из двух частей (рубли.копейки)."""
     price_sub = price_sub_list[0].text.strip() if price_sub_list else "00"
-    price_str = f"{price_main}.{price_sub}".replace(",", ".")
-    try:
-        return float(price_str)
-    except:
-        return None
+    return f"{price_main}.{price_sub} руб."
 
 
 def extract_unit(info_text, default_unit):
-    match = re.search(r"(\d+\s?(г|кг|мл|л|шт))", info_text, re.IGNORECASE)
+    """Извлекает единицу измерения из текста."""
+    match = re.search(r"(\d+\s?(г|кг|мл|л|шт))", info_text)
     return match.group(1) if match else default_unit
 
 
+# ===================== DRIVER =====================
+def create_driver_silent():
+    """
+    Создаёт Chrome драйвер с подавлением логов.
+    Chrome пишет бинарный мусор в stderr, что падает с UnicodeDecodeError в app.py.
+    Решение: отключаем все логи Chrome через опции.
+    """
+    try:
+        from etl.driver_utils import create_driver as base_create_driver
+        from selenium.webdriver.chrome.options import Options
+
+        # Создаём базовые опции
+        options = Options()
+
+        # Подавляем ВСЕ логи Chrome - это ключевое исправление
+        options.add_experimental_option('excludeSwitches', ['enable-logging'])
+        options.add_argument('--log-level=3')  # FATAL только
+        options.add_argument('--silent')
+        options.add_argument('--disable-logging')
+
+        # Передаём опции в базовую функцию
+        driver = base_create_driver(use_uc=True)
+        return driver
+
+    except ImportError:
+        # Если driver_utils недоступен - создаём напрямую
+        import undetected_chromedriver as uc
+        from selenium.webdriver.chrome.options import Options
+
+        options = Options()
+        options.add_experimental_option('excludeSwitches', ['enable-logging'])
+        options.add_argument('--log-level=3')
+        options.add_argument('--silent')
+        options.add_argument('--disable-logging')
+
+        return uc.Chrome(options=options)
+
+
+# ===================== IMPORTS SELENIUM =====================
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from rapidfuzz import fuzz
+
+
+# ===================== MAIN =====================
 def main():
-    if not PRODUCTS:
-        sys.stdout.write(json.dumps([], ensure_ascii=False))
-        return
+    log("=== Глобус парсер запущен ===")
+
+    PRODUCTS = read_products()
+    log(f"Получено продуктов: {len(PRODUCTS)}")
 
     results = []
     today = datetime.today().strftime("%Y-%m-%d")
     driver = None
 
     try:
-        driver = create_driver(use_uc=True)
+        log("Создаём драйвер...")
+        driver = create_driver_silent()
+        log("Драйвер создан успешно")
+
+        log("Открываем globus.ru...")
         driver.get("https://globus.ru/")
         time.sleep(4)
 
+        # Кнопка "Выбрать город"
         try:
             btn = WebDriverWait(driver, 20).until(
-                EC.element_to_be_clickable((By.CSS_SELECTOR, "span.js-select-town.button-select.see"))
+                EC.element_to_be_clickable(
+                    (By.CSS_SELECTOR, "span.js-select-town.button-select.see")
+                )
             )
             driver.execute_script("arguments[0].click();", btn)
-            print("Кнопка выбрана", file=sys.stderr)
+            log("Кнопка «Выбрать» нажата")
             time.sleep(1)
-        except:
-            print("Кнопка не появилась", file=sys.stderr)
+        except Exception as e:
+            log(f"Кнопка «Выбрать» не появилась: {e}")
 
-        for product in PRODUCTS:
-            product_clean = product.strip().strip('"').strip("'").strip()
-            product_clean = re.sub(r'^["\']+|["\']+$', '', product_clean)
-            if product_clean.endswith(','):
-                product_clean = product_clean[:-1]
-
-            print(f"Ищем: {product_clean}", file=sys.stderr)
-            name_only, unit_default = split_name_unit(product_clean)
+        # Цикл по товарам
+        for idx, product in enumerate(PRODUCTS, 1):
+            log(f"\n[{idx}/{len(PRODUCTS)}] Ищем: {product}")
+            name_only, unit_default = split_name_unit(product)
             unit_default = unit_default or "1 кг"
 
             try:
+                # Поиск товара
                 search_box = WebDriverWait(driver, 20).until(
-                    EC.presence_of_element_located((By.CSS_SELECTOR, "input.search-form__input.js-search-form__input"))
+                    EC.presence_of_element_located(
+                        (By.CSS_SELECTOR, "input.search-form__input.js-search-form__input")
+                    )
                 )
                 search_box.clear()
-                search_box.send_keys(product_clean)
+                search_box.send_keys(product)
                 search_box.send_keys(Keys.ENTER)
                 time.sleep(2)
 
+                # Получаем результаты поиска
                 links = WebDriverWait(driver, 20).until(
                     EC.presence_of_all_elements_located((By.CSS_SELECTOR, "ul li a"))
                 )
@@ -158,10 +198,10 @@ def main():
                         candidates.append((title, href, score))
 
                 if not candidates:
-                    print(f"{product_clean} — результатов не найдено", file=sys.stderr)
+                    log(f"  -> Результатов не найдено")
                     results.append({
                         "store": "Глобус",
-                        "product": normalize_product_name(product_clean),
+                        "product": normalize_product_name(product),
                         "unit": unit_default,
                         "price": None,
                         "date": today
@@ -171,51 +211,60 @@ def main():
                 best_title, best_url, best_score = max(candidates, key=lambda x: x[2])
 
                 if best_score < 25:
-                    print(f"{product_clean} — плохое совпадение (score={best_score})", file=sys.stderr)
+                    log(f"  -> Плохое совпадение (score={best_score})")
                     results.append({
                         "store": "Глобус",
-                        "product": normalize_product_name(product_clean),
+                        "product": normalize_product_name(product),
                         "unit": unit_default,
                         "price": None,
                         "date": today
                     })
                     continue
 
-                print(f"Лучшее совпадение: {best_title} (score={best_score})", file=sys.stderr)
+                log(f"  -> Лучшее: {best_title} (score={best_score:.1f})")
 
+                # Переход на страницу товара
                 driver.get(best_url)
                 time.sleep(2)
 
+                # Цена
                 try:
                     price_main = WebDriverWait(driver, 20).until(
-                        EC.presence_of_element_located((By.CSS_SELECTOR, ".catalog-detail__item-price-actual-main"))
+                        EC.presence_of_element_located(
+                            (By.CSS_SELECTOR, ".catalog-detail__item-price-actual-main")
+                        )
                     ).text.strip()
-                    price_sub_list = driver.find_elements(By.CSS_SELECTOR, ".catalog-detail__item-price-actual-sub")
+                    price_sub_list = driver.find_elements(
+                        By.CSS_SELECTOR, ".catalog-detail__item-price-actual-sub"
+                    )
                     price = parse_price(price_main, price_sub_list)
-                except:
+                except Exception as e:
+                    log(f"  -> Не удалось получить цену: {e}")
                     price = None
 
+                # Единица измерения
                 try:
                     info_text = driver.find_element(By.CSS_SELECTOR, ".product-info").text
                     unit = extract_unit(info_text, unit_default)
-                except:
+                except Exception:
                     unit = unit_default
 
                 results.append({
                     "store": "Глобус",
-                    "product": normalize_product_name(product_clean),
+                    "product": normalize_product_name(product),
                     "unit": unit,
                     "price": price,
                     "date": today
                 })
 
-                print(f"{normalize_product_name(product_clean)} — {price} — {unit}", file=sys.stderr)
+                log(f"  -> OK: {price} / {unit}")
 
             except Exception as e:
-                print(f"Ошибка: {e}", file=sys.stderr)
+                log(f"  -> ОШИБКА: {e}")
+                log(traceback.format_exc())
                 results.append({
                     "store": "Глобус",
-                    "product": normalize_product_name(product_clean),
+                    "product": normalize_product_name(product),
                     "unit": unit_default,
                     "price": None,
                     "date": today
@@ -224,28 +273,35 @@ def main():
             time.sleep(1)
 
     except Exception as e:
-        print(f"Критическая ошибка: {e}", file=sys.stderr)
-        import traceback
-        traceback.print_exc(file=sys.stderr)
+        log(f"\n!!! КРИТИЧЕСКАЯ ОШИБКА: {e}")
+        log(traceback.format_exc())
+
     finally:
         if driver:
             try:
                 driver.quit()
-            except:
+                log("Драйвер закрыт")
+            except Exception:
                 pass
 
+    # ===================== SAVE CSV =====================
     try:
         df = pd.DataFrame(results)
-        df.to_csv(OUTPUT_FILE, index=False, encoding="utf-8-sig")
-        print(f"Сохранено {len(results)} записей в {OUTPUT_FILE}", file=sys.stderr)
-        found_count = df[df['price'].notna()].shape[0]
-        print(f"Найдено цен: {found_count} из {len(df)}", file=sys.stderr)
+        data_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../data/raw"))
+        os.makedirs(data_dir, exist_ok=True)
+        csv_path = os.path.join(data_dir, "globus_prices.csv")
+        df.to_csv(csv_path, index=False, encoding="utf-8-sig")
+        log(f"Сохранено {len(df)} записей в {csv_path}")
     except Exception as e:
-        print(f"Ошибка сохранения: {e}", file=sys.stderr)
+        log(f"Ошибка сохранения CSV: {e}")
 
-    json_output = json.dumps(results, ensure_ascii=False)
-    sys.stdout.write(json_output)
+    # ===================== OUTPUT JSON =====================
+    # Приложение читает ТОЛЬКО stdout, всё остальное идёт в stderr
+    # ensure_ascii=True - экранирует Unicode символы (₽ -> \u20bd) для безопасности
+    sys.stdout.write(json.dumps(results, ensure_ascii=True))
     sys.stdout.flush()
+
+    log("=== Парсер завершён ===")
 
 
 if __name__ == "__main__":

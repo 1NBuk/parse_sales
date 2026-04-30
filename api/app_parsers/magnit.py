@@ -6,93 +6,65 @@ import re
 import urllib.parse
 from datetime import datetime
 import json
-import warnings
+import pandas as pd
 import logging
+import warnings
+import sys
+import io
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+sys.stdin = io.TextIOWrapper(sys.stdin.buffer, encoding='utf-8')
+# ===================== НАСТРОЙКА =====================
+warnings.filterwarnings("ignore")
+logging.getLogger("selenium").setLevel(logging.CRITICAL)
 
-warnings.filterwarnings('ignore')
-os.environ['WDM_LOG'] = '0'
-os.environ['WDM_PRINT'] = '0'
-
-logging.getLogger('selenium').setLevel(logging.ERROR)
-logging.getLogger('urllib3').setLevel(logging.ERROR)
-logging.getLogger('webdriver_manager').setLevel(logging.ERROR)
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
 sys.path.insert(0, BASE_DIR)
 
-original_stdout = sys.stdout
-sys.stdout = sys.stderr
+from etl.driver_utils import create_driver
 
-try:
-    from etl.driver_utils import create_driver
-except ImportError:
-    import importlib.util
+# ===================== INPUT =====================
+def read_products():
+    try:
+        data = sys.stdin.read()
+        if data:
+            return json.loads(data)
+    except:
+        pass
+    return []
 
-    spec = importlib.util.spec_from_file_location(
-        "driver_utils",
-        os.path.join(os.path.dirname(__file__), "driver_utils.py")
-    )
-    driver_utils = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(driver_utils)
-    create_driver = driver_utils.create_driver
-
-sys.stdout = original_stdout
-
-import pandas as pd
-from rapidfuzz import fuzz
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException
-
-try:
-    input_data = sys.stdin.read()
-    if input_data:
-        PRODUCTS = json.loads(input_data)
-    else:
-        PRODUCTS = []
-    print(f"Получено продуктов: {len(PRODUCTS)}", file=sys.stderr)
-except Exception as e:
-    PRODUCTS = []
-    print(f"Ошибка чтения: {e}", file=sys.stderr)
+PRODUCTS = read_products()
 
 if not PRODUCTS:
     PRODUCTS = [
-        "Яйцо Окское С1",
-        "Батон Коломенский Нарезной",
-        "Молоко Простоквашино отборное пастеризованное 3.4-4.5%",
-        "Сахар кусковой белый 1кг",
-        "Соль пищевая 1кг",
-        "Крупа гречневая Мистраль 900г",
-        "Масло Олейна подсолнечное 1л",
-        "Масло Брест-Литовск сливочное 82,5% 180г",
-        "Филе грудки цыпленка Петелинка",
-        "Чай Greenfield Golden Ceylon 100г",
-        "Картофель",
-        "Лук репчатый",
-        "Морковь",
-        "Капуста белокочанная",
-        "Яблоки сезонные"
+        "Яйцо С1 10шт",
+        "Молоко 1л",
+        "Хлеб 500г"
     ]
 
 TARGET_ADDRESS = "Панфилова 2"
 
+# ===================== UTILS =====================
+def log(msg):
+    print(msg, file=sys.stderr)
+
+def human_delay(a=0.5, b=1.2):
+    time.sleep(random.uniform(a, b))
+
+def normalize_query(text):
+    return re.sub(r"\d+(\.\d+)?\s?(г|кг|мл|л|шт)", "", text, flags=re.I).strip()
+
+def extract_unit(text):
+    m = re.search(r"\d+\s?(г|кг|мл|л|шт)", text, re.I)
+    return m.group(0) if m else ""
 
 def safe_get(driver, url):
     driver.get(url)
     WebDriverWait(driver, 20).until(
         EC.presence_of_element_located((By.TAG_NAME, "body"))
     )
-
-
-def normalize_query(text):
-    return re.sub(r"\d+(\.\d+)?\s?(г|кг|мл|л|шт)", "", text, flags=re.I).strip()
-
-
-def extract_unit(text):
-    m = re.search(r"\d+\s?(г|кг|мл|л|шт)", text, re.I)
-    return m.group(0) if m else ""
-
 
 def scroll_all(driver):
     last = 0
@@ -104,60 +76,61 @@ def scroll_all(driver):
         time.sleep(1.5)
         last = height
 
-
-def open_shop_bar(driver):
-    bar = WebDriverWait(driver, 20).until(
-        EC.element_to_be_clickable(
-            (By.CSS_SELECTOR, "div.pl-shop-select-bar[data-test-id='map-button']")
-        )
-    )
-    driver.execute_script("arguments[0].click();", bar)
-    time.sleep(1.5)
-
-
-def click_choose_store_screen(driver):
+# ===================== STORE =====================
+def ensure_store_selected(driver, address):
     try:
-        btn = WebDriverWait(driver, 5).until(
+        log("Выбираем магазин...")
+
+        bar = WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable(
-                (By.XPATH, "//button[.//span[text()='Выберите магазин']]")
+                (By.CSS_SELECTOR, "div.pl-shop-select-bar[data-test-id='map-button']")
             )
         )
-        driver.execute_script("arguments[0].click();", btn)
-        time.sleep(1.5)
-    except TimeoutException:
-        pass
+        bar.click()
+        time.sleep(1)
 
+        try:
+            btn = WebDriverWait(driver, 5).until(
+                EC.element_to_be_clickable(
+                    (By.XPATH, "//button[.//span[text()='Выберите магазин']]")
+                )
+            )
+            btn.click()
+        except:
+            pass
 
-def input_address_and_select(driver, address):
-    address_input = WebDriverWait(driver, 20).until(
-        EC.visibility_of_element_located(
-            (By.XPATH, "//input[@placeholder='Адрес магазина']")
+        address_input = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located(
+                (By.XPATH, "//input[@placeholder='Адрес магазина']")
+            )
         )
-    )
 
-    address_input.clear()
-    address_input.send_keys(address)
-    time.sleep(2)
+        address_input.clear()
+        address_input.send_keys(address)
+        time.sleep(2)
 
-    choose_btn = WebDriverWait(driver, 20).until(
-        EC.element_to_be_clickable(
-            (By.XPATH, "//button[.//span[normalize-space()='Выбрать']]")
-        )
-    )
+        try:
+            choose_btn = WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable(
+                    (By.XPATH, "//button[contains(., 'Выбрать')]")
+                )
+            )
+            choose_btn.click()
+        except:
+            shop_item = WebDriverWait(driver, 5).until(
+                EC.element_to_be_clickable(
+                    (By.CSS_SELECTOR, ".pl-shop-item, [data-test-id='shop-item']")
+                )
+            )
+            shop_item.click()
 
-    driver.execute_script("arguments[0].click();", choose_btn)
-    time.sleep(3)
+        time.sleep(3)
+        log(f"OK магазин: {address}")
 
-    print(f"Магазин выбран по адресу: {address}", file=sys.stderr)
+    except Exception as e:
+        log(f"Ошибка выбора магазина: {e}")
 
-
-def ensure_store_selected(driver, address):
-    print("Выбираем магазин", file=sys.stderr)
-    open_shop_bar(driver)
-    click_choose_store_screen(driver)
-    input_address_and_select(driver, address)
-
-
+# ===================== PARSE =====================
 def parse_card(card, default_unit):
     try:
         title = card.find_element(
@@ -168,119 +141,121 @@ def parse_card(card, default_unit):
         return None
 
     try:
-        price_text = card.text
-        price_match = re.search(r"(\d+[,.]?\d*)", price_text)
-        if price_match:
-            price = float(price_match.group(0).replace(",", "."))
-        else:
-            price = None
+        text = card.text
+        m = re.search(r"(\d+[.,]?\d*)", text)
+        price = m.group(1).replace(",", ".") if m else None
     except:
         price = None
 
     unit = extract_unit(title) or default_unit or "1 шт"
+
     return title, price, unit
 
-
+# ===================== MAIN =====================
 def main():
-    if not PRODUCTS:
-        sys.stdout.write(json.dumps([], ensure_ascii=False))
-        return
-
     results = []
     today = datetime.today().strftime("%Y-%m-%d")
+
     driver = None
 
     try:
         driver = create_driver(use_uc=True)
+
+        log("Открываем сайт...")
         safe_get(driver, "https://magnit.ru/")
+        time.sleep(3)
+
         ensure_store_selected(driver, TARGET_ADDRESS)
 
         for product in PRODUCTS:
-            product_clean = product.strip().strip('"').strip("'").strip()
-            product_clean = re.sub(r'^["\']+|["\']+$', '', product_clean)
-            if product_clean.endswith(','):
-                product_clean = product_clean[:-1]
+            try:
+                product = product.strip()
+                query = normalize_query(product)
+                default_unit = extract_unit(product)
 
-            print(f"Ищем: {product_clean}", file=sys.stderr)
+                log(f"Ищем: {product}")
 
-            query = normalize_query(product_clean)
-            default_unit = extract_unit(product_clean)
+                url = f"https://magnit.ru/search/?term={urllib.parse.quote(query)}"
+                safe_get(driver, url)
+                time.sleep(2)
 
-            url = f"https://magnit.ru/search/?term={urllib.parse.quote(query)}"
-            safe_get(driver, url)
-            time.sleep(2)
-            scroll_all(driver)
+                scroll_all(driver)
 
-            cards = driver.find_elements(
-                By.CSS_SELECTOR,
-                ".unit-catalog-product-preview"
-            )
+                cards = WebDriverWait(driver, 15).until(
+                    EC.presence_of_all_elements_located(
+                        (By.CSS_SELECTOR, ".unit-catalog-product-preview")
+                    )
+                )
 
-            print(f"Найдено карточек: {len(cards)}", file=sys.stderr)
+                best = None
+                best_score = -1
 
-            best = None
-            best_score = 0
+                for card in cards[:5]:
+                    try:
+                        parsed = parse_card(card, default_unit)
+                        if not parsed:
+                            continue
 
-            for idx, card in enumerate(cards):
-                parsed = parse_card(card, default_unit)
-                if not parsed:
-                    continue
+                        title, price, unit = parsed
 
-                title, price, unit = parsed
-                if title:
-                    score = fuzz.token_sort_ratio(query.lower(), title.lower())
-                    print(f"  Карточка {idx}: {title[:50]}... score={score}", file=sys.stderr)
-                    if score > best_score:
-                        best_score = score
-                        best = (title, price, unit)
+                        # УПРОЩЁННЫЙ scoring (как во втором коде)
+                        score = len(set(query.lower().split()) &
+                                    set(title.lower().split()))
 
-            if best and best_score >= 55:
+                        if score > best_score:
+                            best_score = score
+                            best = (title, price, unit)
+
+                    except:
+                        continue
+
+                if not best:
+                    raise Exception("Не найдено")
+
                 title, price, unit = best
-                print(f"{product_clean} -> {price} ({title})", file=sys.stderr)
+
                 results.append({
                     "store": "Магнит",
-                    "product": product_clean,
-                    "unit": unit,
+                    "product": product,
+                    "found_name": title,
                     "price": price,
-                    "date": today
-                })
-            else:
-                print(f"{product_clean} — не найден (score={best_score})", file=sys.stderr)
-                results.append({
-                    "store": "Магнит",
-                    "product": product_clean,
-                    "unit": default_unit or "1 шт",
-                    "price": None,
+                    "unit": unit,
                     "date": today
                 })
 
-            time.sleep(1 + random.random())
+                log(f"OK: {product} -> {price}")
+
+            except Exception as e:
+                log(f"Ошибка: {product} -> {e}")
+                results.append({
+                    "store": "Магнит",
+                    "product": product,
+                    "found_name": None,
+                    "price": None,
+                    "unit": "1 шт",
+                    "date": today
+                })
+
+            time.sleep(random.uniform(2, 4))
 
     except Exception as e:
-        print(f"Критическая ошибка: {e}", file=sys.stderr)
-        import traceback
-        traceback.print_exc(file=sys.stderr)
+        log(f"Критическая ошибка: {e}")
+
     finally:
         if driver:
-            try:
-                driver.quit()
-            except:
-                pass
+            driver.quit()
 
+    # ===================== SAVE =====================
     try:
         df = pd.DataFrame(results)
         out_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../data/raw"))
         os.makedirs(out_dir, exist_ok=True)
-        path = os.path.join(out_dir, "magnit_prices.csv")
-        df.to_csv(path, index=False, encoding="utf-8-sig")
-        print(f"Сохранено {len(results)} записей в {path}", file=sys.stderr)
-        found_count = df[df['price'].notna()].shape[0]
-        print(f"Найдено цен: {found_count} из {len(df)}", file=sys.stderr)
-    except Exception as e:
-        print(f"Ошибка сохранения: {e}", file=sys.stderr)
+        df.to_csv(os.path.join(out_dir, "magnit_prices.csv"), index=False)
+    except:
+        pass
 
-    json_output = json.dumps(results, ensure_ascii=False)
-    sys.stdout.write(json_output)
+    # ===================== OUTPUT =====================
+    sys.stdout.write(json.dumps(results, ensure_ascii=False))
     sys.stdout.flush()
 
 

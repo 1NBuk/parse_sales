@@ -6,7 +6,7 @@ import json
 import warnings
 import logging
 from datetime import datetime
-
+я
 warnings.filterwarnings('ignore')
 os.environ['WDM_LOG'] = '0'
 os.environ['WDM_PRINT'] = '0'
