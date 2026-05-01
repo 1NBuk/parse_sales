@@ -3,7 +3,6 @@ import csv
 import psycopg2
 from datetime import datetime
 from dotenv import load_dotenv
-import os
 
 load_dotenv()
 
@@ -54,7 +53,7 @@ def to_float(value):
 
 
 # --------------------------------------------------
-# CSV → RAW
+# CSV → RAW (ИСПРАВЛЕНО: очистка перед загрузкой)
 # --------------------------------------------------
 
 def upload_csv(csv_file):
@@ -66,12 +65,24 @@ def upload_csv(csv_file):
     cur = conn.cursor()
 
     try:
+        # ИСПРАВЛЕНИЕ: Очищаем prices_raw перед новой загрузкой
+        log("Очистка таблицы prices_raw...")
+        cur.execute(f"TRUNCATE TABLE {RAW_TABLE} CASCADE")
+        conn.commit()
+        log("Таблица prices_raw очищена")
+
+        inserted_count = 0
+        skipped_count = 0
 
         with open(csv_file, "r", encoding="utf-8-sig") as f:
-
             reader = csv.DictReader(f)
 
             for row in reader:
+                # Пропускаем строки без важных полей
+                if not row.get("product_clean") or not row.get("store"):
+                    skipped_count += 1
+                    continue
+
                 cur.execute(
                     f"""
                     INSERT INTO {RAW_TABLE}
@@ -88,18 +99,19 @@ def upload_csv(csv_file):
                         row.get("date")
                     )
                 )
+                inserted_count += 1
 
         conn.commit()
-
         log(f"CSV загружен: {os.path.basename(csv_file)}")
+        log(f"  Загружено: {inserted_count} записей")
+        log(f"  Пропущено: {skipped_count} записей")
 
     except Exception as e:
-
         conn.rollback()
         log(f"Ошибка загрузки CSV: {e}")
+        raise
 
     finally:
-
         cur.close()
         conn.close()
 
@@ -110,15 +122,11 @@ def upload_csv(csv_file):
 
 def load_stores(cur):
     cur.execute("""
-
         INSERT INTO stores (name)
-
         SELECT DISTINCT store
         FROM prices_raw
         WHERE store IS NOT NULL
-
         ON CONFLICT (name) DO NOTHING;
-
     """)
 
 
@@ -128,15 +136,11 @@ def load_stores(cur):
 
 def load_brands(cur):
     cur.execute("""
-
         INSERT INTO brands (name)
-
         SELECT DISTINCT brand
         FROM prices_raw
         WHERE brand IS NOT NULL
-
         ON CONFLICT (name) DO NOTHING;
-
     """)
 
 
@@ -146,34 +150,37 @@ def load_brands(cur):
 
 def load_products(cur):
     cur.execute("""
-
         INSERT INTO products (name, brand_id)
-
         SELECT DISTINCT
             p.product_clean,
             b.id
-
         FROM prices_raw p
-        LEFT JOIN brands b
-        ON p.brand = b.name
-
+        LEFT JOIN brands b ON p.brand = b.name
         WHERE p.product_clean IS NOT NULL
-
-        ON CONFLICT DO NOTHING;
-
+        ON CONFLICT (name, brand_id) DO NOTHING;
     """)
 
 
 # --------------------------------------------------
-# LOAD PRICES HISTORY
+# LOAD PRICES HISTORY (ИСПРАВЛЕНО)
 # --------------------------------------------------
 
 def load_prices_history(cur):
-    cur.execute("""
+    # ИСПРАВЛЕНИЕ: Удаляем старые записи с такими же датами перед вставкой новых
+    log("Удаление старых записей из prices_history для обновляемых дат...")
 
+    cur.execute("""
+        DELETE FROM prices_history
+        WHERE date IN (SELECT DISTINCT date FROM prices_raw WHERE date IS NOT NULL)
+    """)
+
+    deleted_count = cur.rowcount
+    log(f"Удалено старых записей: {deleted_count}")
+
+    # Теперь вставляем новые данные
+    cur.execute("""
         INSERT INTO prices_history
         (product_id, store_id, price, quantity, unit, date)
-
         SELECT
             pr.id,
             st.id,
@@ -181,20 +188,14 @@ def load_prices_history(cur):
             p.quantity,
             p.unit_normalized,
             p.date
-
         FROM prices_raw p
-
-        JOIN products pr
-        ON p.product_clean = pr.name
-
-        JOIN stores st
-        ON p.store = st.name
-
-        WHERE p.price IS NOT NULL
-
-        ON CONFLICT DO NOTHING;
-
+        JOIN products pr ON p.product_clean = pr.name
+        JOIN stores st ON p.store = st.name
+        WHERE p.price IS NOT NULL AND p.date IS NOT NULL
     """)
+
+    inserted_count = cur.rowcount
+    log(f"Вставлено новых записей: {inserted_count}")
 
 
 # --------------------------------------------------
@@ -203,10 +204,8 @@ def load_prices_history(cur):
 
 def load_calendar(cur):
     cur.execute("""
-
         INSERT INTO calendar
         (date, year, month, day, day_of_week, week_of_year, is_weekend)
-
         SELECT
             date,
             EXTRACT(YEAR FROM date),
@@ -214,19 +213,16 @@ def load_calendar(cur):
             EXTRACT(DAY FROM date),
             EXTRACT(DOW FROM date),
             EXTRACT(WEEK FROM date),
-
             CASE
                 WHEN EXTRACT(DOW FROM date) IN (0,6) THEN TRUE
                 ELSE FALSE
             END
-
         FROM (
             SELECT DISTINCT date
             FROM prices_raw
+            WHERE date IS NOT NULL
         ) d
-
         ON CONFLICT (date) DO NOTHING;
-
     """)
 
 
@@ -235,12 +231,10 @@ def load_calendar(cur):
 # --------------------------------------------------
 
 def distribute_data():
-
     conn = get_connection()
     cur = conn.cursor()
 
     try:
-
         log("Заполнение stores")
         load_stores(cur)
 
@@ -256,18 +250,15 @@ def distribute_data():
         log("Заполнение prices_history")
         load_prices_history(cur)
 
-
         conn.commit()
-
         log("Данные успешно распределены")
 
     except Exception as e:
-
         conn.rollback()
         log(f"Ошибка распределения данных: {e}")
+        raise
 
     finally:
-
         cur.close()
         conn.close()
 
@@ -288,10 +279,8 @@ def main():
     log("Запуск standalone загрузки")
 
     for file_name in os.listdir(PROCESSED_DIR):
-
         if file_name.endswith(".csv"):
             csv_path = os.path.join(PROCESSED_DIR, file_name)
-
             upload(csv_path)
 
     log("Загрузка завершена")

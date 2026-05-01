@@ -366,6 +366,47 @@ def fix_logical_units(row):
 
     return qty, unit
 
+def fill_quantity_by_similarity(df):
+    df = df.copy()
+
+    # сначала используем уже существующие значения
+    for i, row in df.iterrows():
+
+        if pd.notna(row["quantity"]) and pd.notna(row["unit_normalized"]):
+            continue
+
+        product = row["product_clean"]
+
+        # 1. ищем похожие товары по названию группы
+        similar = df[
+            (df["product_clean"] == product) &
+            (df["quantity"].notna()) &
+            (df["unit_normalized"].notna())
+        ]
+
+        # 2. fallback: product_group
+        if similar.empty:
+            similar = df[
+                (df["product_group"] == row.get("product_group")) &
+                (df["quantity"].notna()) &
+                (df["unit_normalized"].notna())
+            ]
+
+        # 3. если нашли похожие — берём моду / медиану
+        if not similar.empty:
+            qty = similar["quantity"].median()
+            unit = similar["unit_normalized"].mode().iloc[0]
+
+            df.at[i, "quantity"] = qty
+            df.at[i, "unit_normalized"] = unit
+
+        else:
+            # 4. final fallback
+            default_qty, default_unit = get_default_quantity_unit(product)
+            df.at[i, "quantity"] = default_qty
+            df.at[i, "unit_normalized"] = default_unit
+
+    return df
 
 def fill_missing_prices(df):
     """Заполняет пропущенные цены средними по продукту"""
@@ -565,10 +606,16 @@ def transform_all():
     full_df["price"] = pd.to_numeric(full_df["price"], errors="coerce")
     full_df["quantity"] = pd.to_numeric(full_df["quantity"], errors="coerce")
     full_df = full_df.replace("", None)
-    for idx, row in full_df.iterrows():
-        qty, unit = fix_quantity_anomalies(row["quantity"], row["unit_normalized"], row["product_clean"])
-        full_df.at[idx, "quantity"] = qty
-        full_df.at[idx, "unit_normalized"] = unit
+    full_df = fill_quantity_by_similarity(full_df)
+    full_df[["quantity", "unit_normalized"]] = full_df.apply(
+        lambda row: fix_quantity_anomalies(
+            row["quantity"],
+            row["unit_normalized"],
+            row["product_clean"]
+        ),
+        axis=1,
+        result_type="expand"
+    )
 
     # Заполняем пропущенные цены
     full_df = fill_missing_prices(full_df)

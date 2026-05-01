@@ -19,11 +19,17 @@ conn = psycopg2.connect(
 )
 cursor = conn.cursor()
 
-# 1. Получаем уникальные даты из prices_history
 cursor.execute("""
-    SELECT DISTINCT date
-    FROM prices_history
-    ORDER BY date
+    SELECT DISTINCT p.date
+    FROM prices_history p
+    LEFT JOIN external_factors e ON p.date = e.date
+    WHERE e.date IS NULL
+       OR e.usd_rub IS NULL
+       OR e.eur_rub IS NULL
+       OR e.oil_price IS NULL
+       OR e.temperature IS NULL
+       OR e.precipitation IS NULL
+    ORDER BY p.date
 """)
 dates = [row[0] for row in cursor.fetchall()]
 

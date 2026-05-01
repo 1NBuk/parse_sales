@@ -1,6 +1,6 @@
 import re
 import psycopg2
-import pandas as pd
+from rapidfuzz import fuzz
 
 # =========================
 # DB CONFIG
@@ -14,7 +14,7 @@ DB_CONFIG = {
 }
 
 # =========================
-# ЭТАЛОННЫЕ ТОВАРЫ
+# ЭТАЛОННЫЕ ГРУППЫ
 # =========================
 REFERENCE_PRODUCTS = {
     1: "яйцо куриное",
@@ -38,76 +38,96 @@ REFERENCE_PRODUCTS = {
 }
 
 # =========================
-# КЛЮЧЕВЫЕ СЛОВА
+# ОЧИСТКА НАЗВАНИЯ
 # =========================
-KEYWORDS = {
-    'яйцо': 1, 'яйца': 1,
-    'батон': 2,
-    'хлеб': 17,
-    'молоко': 3,
-    'сахар': 4, 'рафинад': 4, 'песок': 4,
-    'соль': 5,
-    'гречка': 6,
-    'крупа': 19,
-    'подсолнечное': 7,
-    'сливочное': 8,
-    'курица': 9, 'филе': 9,
-    'чай': 10,
-    'картофель': 11,
-    'лук': 12,
-    'морковь': 13,
-    'капуста': 14,
-    'яблоки': 15,
-    'сок': 18
-}
-def is_seed_product(name: str) -> bool:
+def clean_text(name: str) -> str:
     if not name:
-        return False
+        return None
 
     name = name.lower()
 
-    seed_keywords = [
-        'семена', 'семян', 'семенной',
-        'рассада', 'саженец', 'саженцы',
-        'посадка', 'на посадку',
-        'севок', 'луковицы', 'клубни',
-        'агрофирма', 'гавриш', 'аэлита',
-        'гибрид', 'f1', 'f2'
-    ]
-
-    return any(word in name for word in seed_keywords)
-
-def clean_name(name: str) -> str:
-    if not name:
-        return 'unknown'
-
-    name = name.lower().strip()
-
+    # убираем мусор
     name = re.sub(r'[^a-zа-я0-9\s]', ' ', name)
+
+    # нормализуем пробелы
     name = re.sub(r'\s+', ' ', name).strip()
 
-    return name if name else 'unknown'
+    return name if name else None
 
-def match_to_reference(name: str):
-    if not name or name == 'unknown':
+
+# =========================
+# НОРМАЛЬНЫЙ KEY (ВАЖНО)
+# =========================
+def make_group_key(name: str) -> str:
+    if not name:
         return None
 
-    for keyword, ref_id in sorted(KEYWORDS.items(), key=lambda x: len(x[0]), reverse=True):
-        if keyword in name:
-            return ref_id
+    name = clean_text(name)
+    if not name:
+        return None
+
+    words = name.split()
+
+    # мусорные слова
+    stopwords = {
+        "на", "посадку", "кг", "г", "мл", "шт",
+        "охлажденное", "охлажденная",
+        "клубни", "семена"
+    }
+
+    words = [w for w in words if w not in stopwords]
+
+    # сортируем — убираем проблему порядка слов
+    words = sorted(words)
+
+    return " ".join(words)
+
+
+def fuzzy_match_group(name: str, threshold=75):
+    best_group = None
+    best_score = 0
+
+    for group_id, ref_name in REFERENCE_PRODUCTS.items():
+
+        score = fuzz.token_set_ratio(name, ref_name)
+
+        if score > best_score:
+            best_score = score
+            best_group = group_id
+
+    if best_score >= threshold:
+        return best_group
+
+    return None
+# =========================
+# МАТЧ ГРУППЫ
+# =========================
+def match_group(name: str):
+    if not name:
+        return None
+
+    for group_id, ref_name in REFERENCE_PRODUCTS.items():
+        ref_words = set(ref_name.split())
+        name_words = set(name.split())
+
+        # мягкое пересечение (а не "in string")
+        if len(ref_words & name_words) > 0:
+            return group_id
 
     return None
 
 
 # =========================
-# ОСНОВНАЯ ЛОГИКА
+# BUILD PRODUCT GROUPS
 # =========================
 def build_product_groups(conn):
     cur = conn.cursor()
 
-    # создаём таблицу если нет
+    # пересоздаём таблицу
+    cur.execute("DROP TABLE IF EXISTS product_groups")
+
     cur.execute("""
-        CREATE TABLE IF NOT EXISTS product_groups (
+        CREATE TABLE product_groups (
             product_id BIGINT PRIMARY KEY,
             product_name TEXT,
             canonical_name TEXT,
@@ -116,51 +136,60 @@ def build_product_groups(conn):
         )
     """)
 
-    # читаем продукты
     cur.execute("SELECT id, name FROM products")
     rows = cur.fetchall()
 
     data = []
 
     for pid, name in rows:
-        if is_seed_product(name):
+
+        canonical = make_group_key(name)
+
+        if not canonical:
             continue
 
-        canonical = clean_name(name)
+        group_id = match_group(canonical)
 
-        if canonical == 'unknown':
-            continue
+        # 1. rule-based
+        if group_id is not None:
+            group_name = REFERENCE_PRODUCTS[group_id]
 
-        group_id = match_to_reference(canonical)
-
+        # 2. fuzzy fallback
         if group_id is None:
-            continue
+            group_id = fuzzy_match_group(canonical)
 
+            if group_id is not None:
+                group_name = REFERENCE_PRODUCTS[group_id]
+
+        # 3. final fallback
+        if group_id is None:
+            group_id = 0
+            group_name = "unknown"
         data.append((
             pid,
             name,
             canonical,
             group_id,
-            REFERENCE_PRODUCTS[group_id]
+            group_name
         ))
 
-    # 🔥 ВАЖНО: UPSERT (обновление при новых данных)
     cur.executemany("""
         INSERT INTO product_groups 
         (product_id, product_name, canonical_name, group_id, group_name)
         VALUES (%s, %s, %s, %s, %s)
-        ON CONFLICT (product_id) DO UPDATE
-        SET 
-            product_name = EXCLUDED.product_name,
-            canonical_name = EXCLUDED.canonical_name,
-            group_id = EXCLUDED.group_id,
-            group_name = EXCLUDED.group_name
     """, data)
 
     conn.commit()
-    print(f"✅ product_groups обновлена: {len(data)} записей")
 
-    # обновляем view
+    print(f"✅ product_groups rebuilt: {len(data)} rows")
+
+
+# =========================
+# VIEW
+# =========================
+def create_view(conn):
+    cur = conn.cursor()
+
     cur.execute("""
         CREATE OR REPLACE VIEW products_with_groups AS
         SELECT 
@@ -168,16 +197,17 @@ def build_product_groups(conn):
             p.name as product_name,
             pg.canonical_name,
             pg.group_id,
-            COALESCE(pg.group_name, 'unknown') as group_name
+            pg.group_name
         FROM products p
-        LEFT JOIN product_groups pg ON p.id = pg.product_id
+        LEFT JOIN product_groups pg 
+            ON p.id = pg.product_id
     """)
 
     conn.commit()
 
 
 # =========================
-# АНАЛИЗ
+# ANALYSIS
 # =========================
 def analyze(conn):
     cur = conn.cursor()
@@ -189,7 +219,7 @@ def analyze(conn):
         ORDER BY COUNT(*) DESC
     """)
 
-    print("\n📊 Результат:")
+    print("\n📊 GROUP DISTRIBUTION:")
     for row in cur.fetchall():
         print(row)
 
@@ -201,10 +231,12 @@ def main():
     conn = psycopg2.connect(**DB_CONFIG)
 
     build_product_groups(conn)
+    create_view(conn)
     analyze(conn)
 
     conn.close()
-    print("\n🚀 ГОТОВО")
+
+    print("\n🚀 DONE")
 
 
 if __name__ == "__main__":
