@@ -163,24 +163,10 @@ def load_products(cur):
 
 # --------------------------------------------------
 # LOAD PRICES HISTORY (ИСПРАВЛЕНО)
-# --------------------------------------------------
-
 def load_prices_history(cur):
-    # ИСПРАВЛЕНИЕ: Удаляем старые записи с такими же датами перед вставкой новых
-    log("Удаление старых записей из prices_history для обновляемых дат...")
-
-    cur.execute("""
-        DELETE FROM prices_history
-        WHERE date IN (SELECT DISTINCT date FROM prices_raw WHERE date IS NOT NULL)
-    """)
-
-    deleted_count = cur.rowcount
-    log(f"Удалено старых записей: {deleted_count}")
-
-    # Теперь вставляем новые данные
     cur.execute("""
         INSERT INTO prices_history
-        (product_id, store_id, price, quantity, unit, date)
+            (product_id, store_id, price, quantity, unit, date)
         SELECT
             pr.id,
             st.id,
@@ -190,12 +176,15 @@ def load_prices_history(cur):
             p.date
         FROM prices_raw p
         JOIN products pr ON p.product_clean = pr.name
-        JOIN stores st ON p.store = st.name
+        JOIN stores st  ON p.store = st.name
         WHERE p.price IS NOT NULL AND p.date IS NOT NULL
+        ON CONFLICT (product_id, store_id, date)   -- нужен UNIQUE constraint
+        DO UPDATE SET
+            price    = EXCLUDED.price,
+            quantity = EXCLUDED.quantity,
+            unit     = EXCLUDED.unit;
     """)
-
-    inserted_count = cur.rowcount
-    log(f"Вставлено новых записей: {inserted_count}")
+    log(f"Обработано записей: {cur.rowcount}")
 
 
 # --------------------------------------------------
