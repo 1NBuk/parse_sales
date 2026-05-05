@@ -11,7 +11,7 @@ import json
 import re
 from dotenv import load_dotenv
 import os
-
+import numpy as np
 load_dotenv()
 
 PG_HOST = os.getenv("PG_HOST")
@@ -86,7 +86,21 @@ def forecast_future(df: pd.DataFrame, model: CatBoostRegressor, features: list, 
         # --- прочее ---
         new_row["quantity"] = last["quantity"].tail(7).mean()
         new_row["date"] = last["date"].iloc[-1] + pd.Timedelta(days=1)
+        # --- median ---
+        new_row["price_median_7"] = tail7.median()
 
+        # --- trends ---
+        new_row["price_trend_3"] = new_row["price_lag_1"].iloc[0] - new_row["price_lag_3"].iloc[0]
+        new_row["price_trend_7"] = new_row["price_lag_1"].iloc[0] - new_row["price_lag_7"].iloc[0]
+
+        # --- cv ---
+        new_row["price_cv_7"] = new_row["price_std_7"].iloc[0] / (new_row["price_mean_7"].iloc[0] + 1e-6)
+
+        # --- group_store_median (ВАЖНО!) ---
+        new_row["group_store_median"] = last["price"].median()  # упрощённо
+
+        # --- price_vs_group ---
+        new_row["price_vs_group"] = new_row["price_lag_1"].iloc[0] / (new_row["group_store_median"].iloc[0] + 1e-6)
         # --- категориальные как строки (как при обучении) ---
         for col in CAT_FEATURES:
             new_row[col] = str(new_row[col].iloc[0])
@@ -94,8 +108,10 @@ def forecast_future(df: pd.DataFrame, model: CatBoostRegressor, features: list, 
         # --- собираем X строго по списку фичей из train.py ---
         X = new_row[features]
 
-        pred = float(model.predict(X)[0])
-        new_row["price"] = pred
+        pred_log = float(model.predict(X)[0])
+        pred_price = np.expm1(pred_log)
+
+        new_row["price"] = pred_price
 
         df = pd.concat([df, new_row], ignore_index=True)
         future_rows.append(new_row.copy())
@@ -142,6 +158,80 @@ def safe_decode(data):
 
 st.set_page_config(page_title="Price Forecast App", layout="wide")
 
+st.markdown("""
+<style>
+
+/* БАЗА — ВСЁ КРУПНО */
+html, body, [class*="css"] {
+    font-size: 23px !important;
+}
+
+/* ВЕСЬ ТЕКСТ */
+p, div, span, label {
+    font-size: 23px !important;
+    line-height: 1.7 !important;
+}
+
+/* ЗАГОЛОВКИ (НЕ ТРОГАЕМ, ОСТАЮТСЯ КАК ЕСТЬ) */
+h1 {
+    font-size: 42px !important;
+    font-weight: 800 !important;
+}
+
+h2 {
+    font-size: 32px !important;
+}
+
+h3 {
+    font-size: 26px !important;
+}
+
+/* SIDEBAR — тоже 23 */
+section[data-testid="stSidebar"] * {
+    font-size: 23px !important;
+}
+
+/* INPUT / SELECT */
+div[data-baseweb="select"] * {
+    font-size: 23px !important;
+}
+
+input, textarea {
+    font-size: 23px !important;
+}
+
+/* КНОПКИ */
+button {
+    font-size: 23px !important;
+    padding: 10px 16px !important;
+}
+
+/* ТАБЛИЦЫ */
+[data-testid="stDataFrame"],
+[data-testid="stDataFrame"] div {
+    font-size: 21px !important;  /* чуть меньше, иначе слишком жирно */
+}
+
+/* METRICS */
+[data-testid="stMetricValue"] {
+    font-size: 32px !important;
+}
+
+[data-testid="stMetricLabel"] {
+    font-size: 20px !important;
+}
+
+/* SLIDER */
+[data-testid="stSlider"] * {
+    font-size: 23px !important;
+}
+[data-testid="stImage"] img {
+    max-height: 300px !important;
+    object-fit: cover;
+}
+</style>
+""", unsafe_allow_html=True)
+
 st.title("Прогнозирование цен на продукты")
 st.markdown("Проект создан: **Букарёвой Анастасией**")
 
@@ -160,10 +250,7 @@ if page == "Главная":
 
     **Тема:** «Разработка системы для анализа и прогнозирования изменения цен на товары»
 
-    **Выполнила:** студентка группы ИД22-1  
-    **Букарёва Анастасия Павловна**
-
-    ---
+    **Выполнила: студентка группы ИД22-1  Букарёва Анастасия Павловна**
     """)
 
     st.markdown("""

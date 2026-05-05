@@ -2,9 +2,6 @@ import re
 import psycopg2
 from rapidfuzz import fuzz
 
-# =========================
-# DB CONFIG
-# =========================
 DB_CONFIG = {
     "dbname": "prices_db",
     "user": "postgres",
@@ -14,10 +11,11 @@ DB_CONFIG = {
 }
 
 # =========================
-# ЭТАЛОННЫЕ ГРУППЫ
+# КАТЕГОРИИ
 # =========================
 REFERENCE_PRODUCTS = {
     1: "яйцо куриное",
+    9: "курица",
     2: "батон",
     3: "молоко",
     4: "сахар",
@@ -25,7 +23,6 @@ REFERENCE_PRODUCTS = {
     6: "гречка",
     7: "масло подсолнечное",
     8: "масло сливочное",
-    9: "курица",
     10: "чай",
     11: "картофель",
     12: "лук",
@@ -34,96 +31,138 @@ REFERENCE_PRODUCTS = {
     15: "яблоки",
     17: "хлеб",
     18: "сок",
-    19: "крупа"
+    19: "крупа",
+    20: "семена"   # 🌱 теперь сюда же и сок по твоему требованию
 }
 
 # =========================
-# ОЧИСТКА НАЗВАНИЯ
+# CLEAN
 # =========================
-def clean_text(name: str) -> str:
-    if not name:
+def clean_text(text: str):
+    if not text:
         return None
-
-    name = name.lower()
-
-    # убираем мусор
-    name = re.sub(r'[^a-zа-я0-9\s]', ' ', name)
-
-    # нормализуем пробелы
-    name = re.sub(r'\s+', ' ', name).strip()
-
-    return name if name else None
+    text = text.lower()
+    text = re.sub(r'[^a-zа-я0-9\s]', ' ', text)
+    text = re.sub(r'\s+', ' ', text).strip()
+    return text or None
 
 
 # =========================
-# НОРМАЛЬНЫЙ KEY (ВАЖНО)
+# 🌱 СЕМЕНА + САЖЕНЦЫ + РАССАДА
 # =========================
-def make_group_key(name: str) -> str:
-    if not name:
-        return None
-
-    name = clean_text(name)
-    if not name:
-        return None
-
-    words = name.split()
-
-    # мусорные слова
-    stopwords = {
-        "на", "посадку", "кг", "г", "мл", "шт",
-        "охлажденное", "охлажденная",
-        "клубни", "семена"
-    }
-
-    words = [w for w in words if w not in stopwords]
-
-    # сортируем — убираем проблему порядка слов
-    words = sorted(words)
-
-    return " ".join(words)
+def is_seed(text: str) -> bool:
+    return any(x in text for x in [
+        "семен",
+        "сажен",
+        "рассада"
+    ])
 
 
-def fuzzy_match_group(name: str, threshold=75):
-    best_group = None
+# =========================
+# 🍹 СОК (в ту же категорию 20)
+# =========================
+def is_juice(text: str) -> bool:
+    return "сок" in text
+
+
+# =========================
+# 🔥 HARD RULES (ПРИОРИТЕТНЫЕ)
+# =========================
+def hard_rules(text: str):
+
+    # 🌱 ВСЁ РАСТИТЕЛЬНОЕ (и СОК ТУДА ЖЕ как ты попросил)
+    if is_seed(text) or is_juice(text):
+        return 20
+
+    # 🥚 яйца
+    if "яйцо" in text:
+        return 1
+
+    # 🐔 курица / мясо
+    if any(x in text for x in ["куриц", "цыпл", "филе", "бедро", "грудк", "шницель"]):
+        return 9
+
+    # 🧈 масло
+    if "масло" in text:
+        if "сливоч" in text:
+            return 8
+        return 7
+
+    # 🍬 сахар
+    if "сахар" in text:
+        return 4
+
+    return None
+
+
+# =========================
+# KEYWORDS (добивка unknown)
+# =========================
+KEYWORDS = {
+    20: ["семен", "сажен", "рассада", "сок", "фреш"],
+    10: ["чай", "greenfield", "ceylon"],
+    15: ["яблок", "гала", "golden", "яблон"],
+    6: ["греч", "ядрица"],
+    3: ["молок"],
+    4: ["сахар", "cахар кусковой"],
+    5: ["соль"],
+    11: ["карто"],
+    12: ["лук"],
+    13: ["морк"],
+    14: ["капуст"],
+    17: ["хлеб", "батон"],
+    19: ["круп", "перлов", "пшено"]
+}
+
+
+def keyword_match(text: str):
+    for gid, words in KEYWORDS.items():
+        if any(w in text for w in words):
+            return gid
+    return None
+
+
+# =========================
+# FUZZY (последний шанс)
+# =========================
+def fuzzy_match(text: str, threshold=72):
+    best_id = None
     best_score = 0
 
-    for group_id, ref_name in REFERENCE_PRODUCTS.items():
-
-        score = fuzz.token_set_ratio(name, ref_name)
-
+    for gid, ref in REFERENCE_PRODUCTS.items():
+        score = fuzz.token_set_ratio(text, ref)
         if score > best_score:
             best_score = score
-            best_group = group_id
+            best_id = gid
 
-    if best_score >= threshold:
-        return best_group
+    return best_id if best_score >= threshold else None
 
-    return None
+
 # =========================
-# МАТЧ ГРУППЫ
+# MATCH PIPELINE
 # =========================
-def match_group(name: str):
-    if not name:
+def match_group(text: str):
+
+    if not text:
         return None
 
-    for group_id, ref_name in REFERENCE_PRODUCTS.items():
-        ref_words = set(ref_name.split())
-        name_words = set(name.split())
+    r = hard_rules(text)
+    if r is not None:
+        return r
 
-        # мягкое пересечение (а не "in string")
-        if len(ref_words & name_words) > 0:
-            return group_id
+    r = keyword_match(text)
+    if r is not None:
+        return r
 
-    return None
+    return fuzzy_match(text)
 
 
 # =========================
-# BUILD PRODUCT GROUPS
+# BUILD TABLE
 # =========================
-def build_product_groups(conn):
+def build(conn):
     cur = conn.cursor()
 
-    # пересоздаём таблицу
     cur.execute("DROP TABLE IF EXISTS product_groups")
 
     cur.execute("""
@@ -142,86 +181,27 @@ def build_product_groups(conn):
     data = []
 
     for pid, name in rows:
-
-        canonical = make_group_key(name)
-
-        if not canonical:
+        norm = clean_text(name)
+        if not norm:
             continue
 
-        group_id = match_group(canonical)
+        gid = match_group(norm)
 
-        # 1. rule-based
-        if group_id is not None:
-            group_name = REFERENCE_PRODUCTS[group_id]
+        if gid is None:
+            gid = 0
+            gname = "unknown"
+        else:
+            gname = REFERENCE_PRODUCTS[gid]
 
-        # 2. fuzzy fallback
-        if group_id is None:
-            group_id = fuzzy_match_group(canonical)
-
-            if group_id is not None:
-                group_name = REFERENCE_PRODUCTS[group_id]
-
-        # 3. final fallback
-        if group_id is None:
-            group_id = 0
-            group_name = "unknown"
-        data.append((
-            pid,
-            name,
-            canonical,
-            group_id,
-            group_name
-        ))
+        data.append((pid, name, norm, gid, gname))
 
     cur.executemany("""
-        INSERT INTO product_groups 
-        (product_id, product_name, canonical_name, group_id, group_name)
-        VALUES (%s, %s, %s, %s, %s)
+        INSERT INTO product_groups
+        VALUES (%s,%s,%s,%s,%s)
     """, data)
 
     conn.commit()
-
-    print(f"✅ product_groups rebuilt: {len(data)} rows")
-
-
-# =========================
-# VIEW
-# =========================
-def create_view(conn):
-    cur = conn.cursor()
-
-    cur.execute("""
-        CREATE OR REPLACE VIEW products_with_groups AS
-        SELECT 
-            p.id as product_id,
-            p.name as product_name,
-            pg.canonical_name,
-            pg.group_id,
-            pg.group_name
-        FROM products p
-        LEFT JOIN product_groups pg 
-            ON p.id = pg.product_id
-    """)
-
-    conn.commit()
-
-
-# =========================
-# ANALYSIS
-# =========================
-def analyze(conn):
-    cur = conn.cursor()
-
-    cur.execute("""
-        SELECT group_name, COUNT(*)
-        FROM products_with_groups
-        GROUP BY group_name
-        ORDER BY COUNT(*) DESC
-    """)
-
-    print("\n📊 GROUP DISTRIBUTION:")
-    for row in cur.fetchall():
-        print(row)
+    print(f"✅ DONE: {len(data)} rows")
 
 
 # =========================
@@ -229,15 +209,8 @@ def analyze(conn):
 # =========================
 def main():
     conn = psycopg2.connect(**DB_CONFIG)
-
-    build_product_groups(conn)
-    create_view(conn)
-    analyze(conn)
-
+    build(conn)
     conn.close()
-
-    print("\n🚀 DONE")
-
 
 if __name__ == "__main__":
     main()

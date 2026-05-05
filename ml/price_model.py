@@ -101,7 +101,7 @@ def load_data():
 
     df["date"] = pd.to_datetime(df["date"])
     df = df.sort_values(["product_id", "store_id", "date"]).reset_index(drop=True)
-
+    df = df[df["group_name"] != "семена"]
     return df
 
 
