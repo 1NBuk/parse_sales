@@ -46,7 +46,16 @@ FEATURES = [
     "store_mean",
     "price_vs_store",
 ]
-
+BAD_TRIPLES = [
+    (363, 170, 7),
+    (329, 238, 13),
+    (7941, 238, 5),
+    (662, 57, 5),
+    (7925, 170, 11),
+    (36, 170, 5),
+    (710, 170, 5),
+    (7941, 251, 5),
+]
 # ==============================
 # METRICS
 # ==============================
@@ -200,6 +209,13 @@ def split_data(df):
 # ==============================
 
 def train_model(train, test):
+    train = train.copy()
+
+    train["weight"] = 1.0
+
+    mask = train.set_index(["product_id", "store_id", "brand_id"]).index.isin(BAD_TRIPLES)
+
+    train.loc[mask, "weight"] = 0.1
     X_train = train[FEATURES]
     y_train = train["price_log"]
 
@@ -225,7 +241,7 @@ def train_model(train, test):
         X_train, y_train,
         cat_features=cat_idx,
         eval_set=(X_test, y_test),
-        sample_weight=weights,
+        sample_weight=train["weight"],
         use_best_model=True
     )
 

@@ -35,8 +35,14 @@ conn = psycopg2.connect(**DB_CONFIG)
 
 
 def build_features(df):
-    df = df.sort_values(["product_id", "store_id", "date"])
-    group = df.groupby(["product_id", "store_id"])
+    required = ["product_id", "store_id"]
+
+    if all(col in df.columns for col in required):
+        df = df.sort_values(["product_id", "store_id", "date"])
+        group = df.groupby(["product_id", "store_id"])
+    else:
+        df = df.sort_values(["date"])
+        group = df.groupby(df.index)  # fallback
     df["price_lag_1"] = group["price"].shift(1)
     df["price_lag_3"] = group["price"].shift(3)
     df["price_lag_7"] = group["price"].shift(7)
@@ -103,11 +109,14 @@ def forecast_future(df: pd.DataFrame, model: CatBoostRegressor, features: list, 
         new_row["price_vs_group"] = new_row["price_lag_1"].iloc[0] / (new_row["group_store_median"].iloc[0] + 1e-6)
         # --- категориальные как строки (как при обучении) ---
         for col in CAT_FEATURES:
-            new_row[col] = str(new_row[col].iloc[0])
+            if col in new_row.columns:
+                new_row[col] = str(new_row[col].iloc[0])
+            else:
+                new_row[col] = "unknown"
 
         # --- собираем X строго по списку фичей из train.py ---
         X = new_row[features]
-
+        X = new_row.reindex(columns=features, fill_value=0)
         pred_log = float(model.predict(X)[0])
         pred_price = np.expm1(pred_log)
 
@@ -453,7 +462,133 @@ elif page == "Графики":
     # ---------------------------
     st.subheader("Данные (после фильтрации)")
     st.dataframe(df_filtered.head(200))
+    # ---------------------------
+    # KPI НАСТРОЙКИ
+    # ---------------------------
 
+    kpi_options = {
+        # ЦЕНЫ
+        "Средняя цена": "avg_price",
+        "Минимальная цена": "min_price",
+        "Максимальная цена": "max_price",
+        "Медианная цена": "median_price",
+
+        # ДИНАМИКА
+        "Изменение цены (%)": "price_change_percent",
+        "Изменение цены (₽)": "price_change_abs",
+
+        # СТАБИЛЬНОСТЬ
+        "Волатильность цены": "price_std",
+        "Коэффициент вариации": "price_cv",
+
+        # ПРОДАЖИ
+        "Среднее количество": "avg_quantity",
+        "Максимальное количество": "max_quantity",
+        "Суммарное количество": "sum_quantity",
+
+        # СТРУКТУРА
+        "Количество товаров": "products_count",
+        "Количество брендов": "brands_count",
+        "Количество магазинов": "stores_count"
+    }
+
+    selected_kpis = st.multiselect(
+        "Выберите KPI показатели",
+        list(kpi_options.keys()),
+        default=[
+            "Средняя цена",
+            "Изменение цены (%)",
+            "Волатильность цены"
+        ]
+    )
+
+    if len(df_filtered) > 0 and selected_kpis:
+
+        st.subheader("KPI показатели")
+
+        # сортировка по дате
+        df_sorted = df_filtered.sort_values("date")
+
+        first_price = df_sorted["price"].iloc[0]
+        last_price = df_sorted["price"].iloc[-1]
+
+        kpi_values = {
+            # ЦЕНЫ
+            "Средняя цена": round(df_filtered["price"].mean(), 2),
+            "Минимальная цена": round(df_filtered["price"].min(), 2),
+            "Максимальная цена": round(df_filtered["price"].max(), 2),
+            "Медианная цена": round(df_filtered["price"].median(), 2),
+
+            # ДИНАМИКА
+            "Изменение цены (%)": round(
+                ((last_price - first_price) / first_price) * 100,
+                2
+            ) if first_price != 0 else 0,
+
+            "Изменение цены (₽)": round(
+                last_price - first_price,
+                2
+            ),
+
+            # СТАБИЛЬНОСТЬ
+            "Волатильность цены": round(
+                df_filtered["price"].std(),
+                2
+            ),
+
+            "Коэффициент вариации": round(
+                (
+                        df_filtered["price"].std()
+                        / (df_filtered["price"].mean() + 1e-6)
+                ) * 100,
+                2
+            ),
+
+            # ПРОДАЖИ
+            "Среднее количество": round(
+                df_filtered["quantity"].mean(),
+                2
+            ),
+
+            "Максимальное количество": round(
+                df_filtered["quantity"].max(),
+                2
+            ),
+
+            "Суммарное количество": round(
+                df_filtered["quantity"].sum(),
+                2
+            ),
+
+            # СТРУКТУРА
+            "Количество товаров": df_filtered["product_id"].nunique(),
+
+            "Количество брендов": df_filtered["brand_name"].nunique(),
+
+            "Количество магазинов": df_filtered["store_name"].nunique()
+        }
+
+        cols = st.columns(min(4, len(selected_kpis)))
+
+        for idx, kpi_name in enumerate(selected_kpis):
+
+            value = kpi_values[kpi_name]
+
+            # suffix
+            if "цена" in kpi_name.lower() and "%" not in kpi_name:
+                value_str = f"{value} ₽"
+
+            elif "%" in kpi_name or "вариации" in kpi_name.lower():
+                value_str = f"{value} %"
+
+            else:
+                value_str = str(value)
+
+            with cols[idx % 4]:
+                st.metric(
+                    label=kpi_name,
+                    value=value_str
+                )
 elif page == "Просмотр предсказаний":
     st.header("Прогноз цен (будущее)")
 
