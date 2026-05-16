@@ -275,6 +275,38 @@ def main():
 
     print("=== METRICS ===")
     metrics = evaluate(y_true, preds)
+    conn = psycopg2.connect(**DB_CONFIG)
+    cur = conn.cursor()
+
+    version = "v1"
+
+    cur.execute("""
+        INSERT INTO model_runs (
+            model_version,
+            rmse,
+            mae,
+            mape,
+            r2,
+            train_size,
+            test_size,
+            features,
+            cat_features
+        )
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+    """, (
+        version,
+        metrics["RMSE"],
+        metrics["MAE"],
+        metrics["MAPE"],
+        metrics["R2"],
+        len(train),
+        len(test),
+        json.dumps(FEATURES),
+        json.dumps(CAT_FEATURES)
+    ))
+
+    conn.commit()
+    conn.close()
     for k, v in metrics.items():
         print(f"{k}: {v:.4f}")
 

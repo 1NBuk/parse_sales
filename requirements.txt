@@ -1,25 +1,31 @@
-# Работа с веб-браузером
-selenium==4.15.0
-dotenv
-rapidfuzz==2.15.1
-selenium
-pandas==2.1.1
-psycopg2-binary
+# Web
+fastapi==0.111.0
+uvicorn[standard]==0.30.1
+streamlit==1.35.0
+
+# ML
+catboost==1.2.5
+scikit-learn==1.5.0
+numpy==1.26.4
+pandas==2.2.2
+joblib==1.4.2
+
+# DB
+psycopg2-binary==2.9.9
+
+# HTTP / parsing
 requests==2.31.0
-openpyxl==3.1.2
-holidays
+selenium==4.15.0
+beautifulsoup4==4.12.3
+lxml==5.2.2
+rapidfuzz==2.15.1
+
+# Scheduling / ETL
 schedule==1.2.0
-beautifulsoup4
-lxml
-boto3
-google-api-python-client
-google-auth
-google-auth-httplib2
-google-auth-oauthlib
-psycopg2
-uvicorn
-fastapi
-pydantic
-joblib
-scikit-learn
-catboost
+apache-airflow==2.9.2
+apache-airflow-providers-celery==3.7.2
+
+# Utils
+python-dotenv==1.0.1
+openpyxl==3.1.2
+holidays==0.46

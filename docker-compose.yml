@@ -1,0 +1,34 @@
+version: "3.9"
+
+services:
+
+  postgres:
+    image: postgres:16
+    container_name: prices_postgres
+
+    environment:
+      POSTGRES_DB: prices_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 12345
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  app:
+    build: .
+
+    container_name: prices_ml_system
+
+    depends_on:
+      - postgres
+
+    volumes:
+      - .:/app
+
+    command: python main.py
+
+volumes:
+  postgres_data:
