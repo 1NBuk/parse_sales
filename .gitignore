@@ -1,3 +1,4 @@
 etl/gdrive_key.json
 etl/credentials.json
 .env
+logs/
