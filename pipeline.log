@@ -1,0 +1,1044 @@
+[2026-08-24 19:37:02] Запуск ETL pipeline
+[2026-08-24 19:37:02] Запуск ETL pipeline
+[2026-08-24 19:37:02] Найдено парсеров: 6
+[2026-08-24 19:37:02] Найдено парсеров: 6
+[2026-08-24 19:37:05] Результат парсера: auchan_parser.py
+[2026-08-24 19:37:05] Traceback (most recent call last):
+  File "/opt/airflow/repo/etl/parsers/auchan_parser.py", line 9, in <module>
+    from selenium.webdriver.common.action_chains import ActionChains
+ModuleNotFoundError: No module named 'selenium'
+
+[2026-08-24 19:37:05] Ошибка в auchan_parser.py
+[2026-08-24 19:37:06] Результат парсера: auchan_parser.py
+[2026-08-24 19:37:06] Traceback (most recent call last):
+  File "/opt/airflow/repo/etl/parsers/auchan_parser.py", line 9, in <module>
+    from selenium.webdriver.common.action_chains import ActionChains
+ModuleNotFoundError: No module named 'selenium'
+
+[2026-08-24 19:37:06] Ошибка в auchan_parser.py
+[2026-08-24 19:37:07] Результат парсера: dixy_parser.py
+[2026-08-24 19:37:07] Traceback (most recent call last):
+  File "/opt/airflow/repo/etl/parsers/dixy_parser.py", line 10, in <module>
+    from rapidfuzz import fuzz
+ModuleNotFoundError: No module named 'rapidfuzz'
+
+[2026-08-24 19:37:07] Ошибка в dixy_parser.py
+[2026-08-24 19:37:08] Результат парсера: dixy_parser.py
+[2026-08-24 19:37:08] Traceback (most recent call last):
+  File "/opt/airflow/repo/etl/parsers/dixy_parser.py", line 10, in <module>
+    from rapidfuzz import fuzz
+ModuleNotFoundError: No module named 'rapidfuzz'
+
+[2026-08-24 19:37:08] Ошибка в dixy_parser.py
+[2026-08-24 19:37:10] Результат парсера: lenta_parser.py
+[2026-08-24 19:37:10] Traceback (most recent call last):
+  File "/opt/airflow/repo/etl/parsers/lenta_parser.py", line 7, in <module>
+    from rapidfuzz import fuzz
+ModuleNotFoundError: No module named 'rapidfuzz'
+
+[2026-08-24 19:37:10] Ошибка в lenta_parser.py
+[2026-08-24 19:37:10] Результат парсера: lenta_parser.py
+[2026-08-24 19:37:10] Traceback (most recent call last):
+  File "/opt/airflow/repo/etl/parsers/lenta_parser.py", line 7, in <module>
+    from rapidfuzz import fuzz
+ModuleNotFoundError: No module named 'rapidfuzz'
+
+[2026-08-24 19:37:10] Ошибка в lenta_parser.py
+[2026-08-24 19:37:12] Результат парсера: xglobus_parser.py
+[2026-08-24 19:37:12] Traceback (most recent call last):
+  File "/opt/airflow/repo/etl/parsers/xglobus_parser.py", line 12, in <module>
+    from etl.driver_utils import create_driver
+  File "/opt/airflow/repo/etl/driver_utils.py", line 4, in <module>
+    from selenium import webdriver
+ModuleNotFoundError: No module named 'selenium'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/opt/airflow/repo/etl/parsers/xglobus_parser.py", line 20, in <module>
+    spec.loader.exec_module(driver_utils)
+  File "<frozen importlib._bootstrap_external>", line 936, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 1073, in get_code
+  File "<frozen importlib._bootstrap_external>", line 1130, in get_data
+FileNotFoundError: [Errno 2] No such file or directory: '/opt/airflow/repo/etl/parsers/driver_utils.py'
+
+[2026-08-24 19:37:12] Ошибка в xglobus_parser.py
+[2026-08-24 19:37:13] Результат парсера: xmagnit_parser.py
+[2026-08-24 19:37:13] Traceback (most recent call last):
+  File "/opt/airflow/repo/etl/parsers/xmagnit_parser.py", line 10, in <module>
+    from rapidfuzz import fuzz
+ModuleNotFoundError: No module named 'rapidfuzz'
+
+[2026-08-24 19:37:13] Ошибка в xmagnit_parser.py
+[2026-08-24 19:37:14] Результат парсера: xglobus_parser.py
+[2026-08-24 19:37:14] Traceback (most recent call last):
+  File "/opt/airflow/repo/etl/parsers/xglobus_parser.py", line 12, in <module>
+    from etl.driver_utils import create_driver
+  File "/opt/airflow/repo/etl/driver_utils.py", line 4, in <module>
+    from selenium import webdriver
+ModuleNotFoundError: No module named 'selenium'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/opt/airflow/repo/etl/parsers/xglobus_parser.py", line 20, in <module>
+    spec.loader.exec_module(driver_utils)
+  File "<frozen importlib._bootstrap_external>", line 936, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 1073, in get_code
+  File "<frozen importlib._bootstrap_external>", line 1130, in get_data
+FileNotFoundError: [Errno 2] No such file or directory: '/opt/airflow/repo/etl/parsers/driver_utils.py'
+
+[2026-08-24 19:37:14] Ошибка в xglobus_parser.py
+[2026-08-24 19:37:15] Результат парсера: xmagnit_parser.py
+[2026-08-24 19:37:15] Traceback (most recent call last):
+  File "/opt/airflow/repo/etl/parsers/xmagnit_parser.py", line 10, in <module>
+    from rapidfuzz import fuzz
+ModuleNotFoundError: No module named 'rapidfuzz'
+
+[2026-08-24 19:37:15] Ошибка в xmagnit_parser.py
+[2026-08-24 19:37:18] Результат парсера: yandex_products_parser.py
+[2026-08-24 19:37:18] Traceback (most recent call last):
+  File "/opt/airflow/repo/etl/parsers/yandex_products_parser.py", line 12, in <module>
+    from selenium import webdriver
+ModuleNotFoundError: No module named 'selenium'
+
+[2026-08-24 19:37:18] Ошибка в yandex_products_parser.py
+[2026-08-24 19:37:18] Некоторые парсеры завершились с ошибками:
+[2026-08-24 19:37:18] - auchan_parser.py
+[2026-08-24 19:37:18] - dixy_parser.py
+[2026-08-24 19:37:18] - lenta_parser.py
+[2026-08-24 19:37:18] - xglobus_parser.py
+[2026-08-24 19:37:18] - xmagnit_parser.py
+[2026-08-24 19:37:18] - yandex_products_parser.py
+[2026-08-24 19:37:18] Запуск transform шага
+[2026-08-24 19:37:18] Transform завершён
+[2026-08-24 19:37:18] Загрузка данных в PostgreSQL
+[2026-08-24 19:37:18] Ошибка загрузки clean_prices.csv: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+	Is the server running locally and accepting connections on that socket?
+
+[2026-08-24 19:37:18] Запуск ML шага
+[2026-08-24 19:37:18] Запуск ML обучения
+[2026-08-24 19:37:18] 
+[2026-08-24 19:37:18] Ошибка ML обучения
+[2026-08-24 19:37:18] Traceback (most recent call last):
+  File "/opt/airflow/repo/ml/price_model.py", line 7, in <module>
+    from catboost import CatBoostRegressor
+ModuleNotFoundError: No module named 'catboost'
+
+[2026-08-24 19:37:18] ETL pipeline завершён
+[2026-08-24 19:37:20] Результат парсера: yandex_products_parser.py
+[2026-08-24 19:37:20] Traceback (most recent call last):
+  File "/opt/airflow/repo/etl/parsers/yandex_products_parser.py", line 12, in <module>
+    from selenium import webdriver
+ModuleNotFoundError: No module named 'selenium'
+
+[2026-08-24 19:37:20] Ошибка в yandex_products_parser.py
+[2026-08-24 19:37:20] Некоторые парсеры завершились с ошибками:
+[2026-08-24 19:37:20] - auchan_parser.py
+[2026-08-24 19:37:20] - dixy_parser.py
+[2026-08-24 19:37:20] - lenta_parser.py
+[2026-08-24 19:37:20] - xglobus_parser.py
+[2026-08-24 19:37:20] - xmagnit_parser.py
+[2026-08-24 19:37:20] - yandex_products_parser.py
+[2026-08-24 19:37:20] Запуск transform шага
+[2026-08-24 19:37:20] Transform завершён
+[2026-08-24 19:37:20] Загрузка данных в PostgreSQL
+[2026-08-24 19:37:20] Ошибка загрузки clean_prices.csv: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+	Is the server running locally and accepting connections on that socket?
+
+[2026-08-24 19:37:20] Запуск ML шага
+[2026-08-24 19:37:20] Запуск ML обучения
+[2026-08-24 19:37:20] 
+[2026-08-24 19:37:20] Ошибка ML обучения
+[2026-08-24 19:37:20] Traceback (most recent call last):
+  File "/opt/airflow/repo/ml/price_model.py", line 7, in <module>
+    from catboost import CatBoostRegressor
+ModuleNotFoundError: No module named 'catboost'
+
+[2026-08-24 19:37:20] ETL pipeline завершён
+[2026-08-25 13:16:55] Запуск ETL pipeline
+[2026-08-25 13:16:55] Найдено парсеров: 6
+[2026-08-25 13:17:00] Результат парсера: auchan_parser.py
+[2026-08-25 13:17:00] Traceback (most recent call last):
+  File "/opt/airflow/repo/etl/parsers/auchan_parser.py", line 9, in <module>
+    from selenium.webdriver.common.action_chains import ActionChains
+ModuleNotFoundError: No module named 'selenium'
+
+[2026-08-25 13:17:00] Ошибка в auchan_parser.py
+[2026-08-25 13:17:00] Результат парсера: dixy_parser.py
+[2026-08-25 13:17:00] Traceback (most recent call last):
+  File "/opt/airflow/repo/etl/parsers/dixy_parser.py", line 10, in <module>
+    from rapidfuzz import fuzz
+ModuleNotFoundError: No module named 'rapidfuzz'
+
+[2026-08-25 13:17:00] Ошибка в dixy_parser.py
+[2026-08-25 13:17:04] Результат парсера: xglobus_parser.py
+[2026-08-25 13:17:04] Traceback (most recent call last):
+  File "/opt/airflow/repo/etl/parsers/xglobus_parser.py", line 12, in <module>
+    from etl.driver_utils import create_driver
+  File "/opt/airflow/repo/etl/driver_utils.py", line 4, in <module>
+    from selenium import webdriver
+ModuleNotFoundError: No module named 'selenium'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/opt/airflow/repo/etl/parsers/xglobus_parser.py", line 20, in <module>
+    spec.loader.exec_module(driver_utils)
+  File "<frozen importlib._bootstrap_external>", line 936, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 1073, in get_code
+  File "<frozen importlib._bootstrap_external>", line 1130, in get_data
+FileNotFoundError: [Errno 2] No such file or directory: '/opt/airflow/repo/etl/parsers/driver_utils.py'
+
+[2026-08-25 13:17:04] Ошибка в xglobus_parser.py
+[2026-08-25 13:17:04] Результат парсера: lenta_parser.py
+[2026-08-25 13:17:04] Traceback (most recent call last):
+  File "/opt/airflow/repo/etl/parsers/lenta_parser.py", line 7, in <module>
+    from rapidfuzz import fuzz
+ModuleNotFoundError: No module named 'rapidfuzz'
+
+[2026-08-25 13:17:04] Ошибка в lenta_parser.py
+[2026-08-25 13:17:07] Результат парсера: xmagnit_parser.py
+[2026-08-25 13:17:07] Traceback (most recent call last):
+  File "/opt/airflow/repo/etl/parsers/xmagnit_parser.py", line 10, in <module>
+    from rapidfuzz import fuzz
+ModuleNotFoundError: No module named 'rapidfuzz'
+
+[2026-08-25 13:17:07] Ошибка в xmagnit_parser.py
+[2026-08-25 13:17:09] Результат парсера: yandex_products_parser.py
+[2026-08-25 13:17:09] Traceback (most recent call last):
+  File "/opt/airflow/repo/etl/parsers/yandex_products_parser.py", line 12, in <module>
+    from selenium import webdriver
+ModuleNotFoundError: No module named 'selenium'
+
+[2026-08-25 13:17:09] Ошибка в yandex_products_parser.py
+[2026-08-25 13:17:09] Некоторые парсеры завершились с ошибками:
+[2026-08-25 13:17:09] - auchan_parser.py
+[2026-08-25 13:17:09] - dixy_parser.py
+[2026-08-25 13:17:09] - xglobus_parser.py
+[2026-08-25 13:17:09] - lenta_parser.py
+[2026-08-25 13:17:09] - xmagnit_parser.py
+[2026-08-25 13:17:09] - yandex_products_parser.py
+[2026-08-25 13:17:09] Запуск transform шага
+[2026-08-25 13:17:09] Transform завершён
+[2026-08-25 13:17:09] Загрузка данных в PostgreSQL
+[2026-08-25 13:17:09] Ошибка загрузки clean_prices.csv: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+	Is the server running locally and accepting connections on that socket?
+
+[2026-08-25 13:17:09] Запуск ML шага
+[2026-08-25 13:17:09] Запуск ML обучения
+[2026-08-25 13:17:10] 
+[2026-08-25 13:17:10] Ошибка ML обучения
+[2026-08-25 13:17:10] Traceback (most recent call last):
+  File "/opt/airflow/repo/ml/price_model.py", line 7, in <module>
+    from catboost import CatBoostRegressor
+ModuleNotFoundError: No module named 'catboost'
+
+[2026-08-25 13:17:10] ETL pipeline завершён
+[2026-08-25 13:19:23] Pipeline уже запускался сегодня. Выход.
+[2026-08-25 13:20:28] Pipeline уже запускался сегодня. Выход.
+[2026-08-25 13:20:28] Pipeline уже запускался сегодня. Выход.
+[2026-08-25 13:34:11] Pipeline уже запускался сегодня. Выход.
+[2026-08-25 13:34:28] Pipeline уже запускался сегодня. Выход.
+[2026-08-25 13:34:35] Запуск ETL pipeline
+[2026-08-25 13:34:35] Найдено парсеров: 6
+[2026-08-25 13:34:39] Результат парсера: dixy_parser.py
+[2026-08-25 13:34:39] Traceback (most recent call last):
+  File "/opt/airflow/repo/etl/parsers/dixy_parser.py", line 10, in <module>
+    from rapidfuzz import fuzz
+ModuleNotFoundError: No module named 'rapidfuzz'
+
+[2026-08-25 13:34:39] Ошибка в dixy_parser.py
+[2026-08-25 13:34:40] Результат парсера: auchan_parser.py
+[2026-08-25 13:34:40] Traceback (most recent call last):
+  File "/opt/airflow/repo/etl/parsers/auchan_parser.py", line 9, in <module>
+    from selenium.webdriver.common.action_chains import ActionChains
+ModuleNotFoundError: No module named 'selenium'
+
+[2026-08-25 13:34:40] Ошибка в auchan_parser.py
+[2026-08-25 13:34:43] Результат парсера: lenta_parser.py
+[2026-08-25 13:34:43] Traceback (most recent call last):
+  File "/opt/airflow/repo/etl/parsers/lenta_parser.py", line 7, in <module>
+    from rapidfuzz import fuzz
+ModuleNotFoundError: No module named 'rapidfuzz'
+
+[2026-08-25 13:34:43] Ошибка в lenta_parser.py
+[2026-08-25 13:36:18] Запуск ETL pipeline
+[2026-08-25 13:36:18] Найдено парсеров: 6
+[2026-08-25 13:36:20] Результат парсера: auchan_parser.py
+[2026-08-25 13:36:20] Traceback (most recent call last):
+  File "/opt/airflow/repo/etl/parsers/auchan_parser.py", line 9, in <module>
+    from selenium.webdriver.common.action_chains import ActionChains
+ModuleNotFoundError: No module named 'selenium'
+
+[2026-08-25 13:36:20] Ошибка в auchan_parser.py
+[2026-08-25 13:36:21] Результат парсера: dixy_parser.py
+[2026-08-25 13:36:21] Traceback (most recent call last):
+  File "/opt/airflow/repo/etl/parsers/dixy_parser.py", line 10, in <module>
+    from rapidfuzz import fuzz
+ModuleNotFoundError: No module named 'rapidfuzz'
+
+[2026-08-25 13:36:21] Ошибка в dixy_parser.py
+[2026-08-25 13:36:55] Запуск ETL pipeline
+[2026-08-25 13:36:55] Найдено парсеров: 6
+[2026-08-25 13:36:59] Результат парсера: dixy_parser.py
+[2026-08-25 13:36:59] Traceback (most recent call last):
+  File "/opt/airflow/repo/etl/parsers/dixy_parser.py", line 10, in <module>
+    from rapidfuzz import fuzz
+ModuleNotFoundError: No module named 'rapidfuzz'
+
+[2026-08-25 13:36:59] Ошибка в dixy_parser.py
+[2026-08-25 13:37:00] Результат парсера: auchan_parser.py
+[2026-08-25 13:37:00] Traceback (most recent call last):
+  File "/opt/airflow/repo/etl/parsers/auchan_parser.py", line 9, in <module>
+    from selenium.webdriver.common.action_chains import ActionChains
+ModuleNotFoundError: No module named 'selenium'
+
+[2026-08-25 13:37:00] Ошибка в auchan_parser.py
+[2026-08-25 13:37:02] Результат парсера: lenta_parser.py
+[2026-08-25 13:37:02] Traceback (most recent call last):
+  File "/opt/airflow/repo/etl/parsers/lenta_parser.py", line 7, in <module>
+    from rapidfuzz import fuzz
+ModuleNotFoundError: No module named 'rapidfuzz'
+
+[2026-08-25 13:37:02] Ошибка в lenta_parser.py
+[2026-08-25 13:38:53] Запуск ETL pipeline
+[2026-08-25 13:38:53] Найдено парсеров: 6
+[2026-08-25 13:38:57] Результат парсера: auchan_parser.py
+[2026-08-25 13:38:57] Traceback (most recent call last):
+  File "/opt/airflow/repo/etl/parsers/auchan_parser.py", line 9, in <module>
+    from selenium.webdriver.common.action_chains import ActionChains
+ModuleNotFoundError: No module named 'selenium'
+
+[2026-08-25 13:38:57] Ошибка в auchan_parser.py
+[2026-08-25 13:38:58] Результат парсера: dixy_parser.py
+[2026-08-25 13:38:58] Traceback (most recent call last):
+  File "/opt/airflow/repo/etl/parsers/dixy_parser.py", line 10, in <module>
+    from rapidfuzz import fuzz
+ModuleNotFoundError: No module named 'rapidfuzz'
+
+[2026-08-25 13:38:58] Ошибка в dixy_parser.py
+[2026-08-25 16:00:10] Запуск ETL pipeline
+[2026-08-25 16:00:10] Найдено парсеров: 6
+[2026-08-25 16:00:15] Результат парсера: dixy_parser.py
+[2026-08-25 16:00:15] Traceback (most recent call last):
+  File "/opt/airflow/repo/etl/parsers/dixy_parser.py", line 14, in <module>
+    from etl.driver_utils import create_driver
+  File "/opt/airflow/repo/etl/driver_utils.py", line 7, in <module>
+    from webdriver_manager.chrome import ChromeDriverManager
+ModuleNotFoundError: No module named 'webdriver_manager'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/opt/airflow/repo/etl/parsers/dixy_parser.py", line 22, in <module>
+    spec.loader.exec_module(driver_utils)
+  File "<frozen importlib._bootstrap_external>", line 936, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 1073, in get_code
+  File "<frozen importlib._bootstrap_external>", line 1130, in get_data
+FileNotFoundError: [Errno 2] No such file or directory: '/opt/airflow/repo/etl/parsers/driver_utils.py'
+
+[2026-08-25 16:00:15] Ошибка в dixy_parser.py
+[2026-08-25 16:00:16] Результат парсера: auchan_parser.py
+[2026-08-25 16:00:16] Traceback (most recent call last):
+  File "/opt/airflow/repo/etl/parsers/auchan_parser.py", line 16, in <module>
+    from etl.driver_utils import create_driver
+  File "/opt/airflow/repo/etl/driver_utils.py", line 7, in <module>
+    from webdriver_manager.chrome import ChromeDriverManager
+ModuleNotFoundError: No module named 'webdriver_manager'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/opt/airflow/repo/etl/parsers/auchan_parser.py", line 25, in <module>
+    spec.loader.exec_module(driver_utils)
+  File "<frozen importlib._bootstrap_external>", line 936, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 1073, in get_code
+  File "<frozen importlib._bootstrap_external>", line 1130, in get_data
+FileNotFoundError: [Errno 2] No such file or directory: '/opt/airflow/repo/etl/parsers/driver_utils.py'
+
+[2026-08-25 16:00:16] Ошибка в auchan_parser.py
+[2026-08-25 16:06:15] Запуск ETL pipeline
+[2026-08-25 16:06:15] Найдено парсеров: 6
+[2026-08-25 16:06:19] Результат парсера: dixy_parser.py
+[2026-08-25 16:06:19] Traceback (most recent call last):
+  File "/opt/airflow/repo/etl/parsers/dixy_parser.py", line 14, in <module>
+    from etl.driver_utils import create_driver
+  File "/opt/airflow/repo/etl/driver_utils.py", line 7, in <module>
+    from webdriver_manager.chrome import ChromeDriverManager
+ModuleNotFoundError: No module named 'webdriver_manager'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/opt/airflow/repo/etl/parsers/dixy_parser.py", line 22, in <module>
+    spec.loader.exec_module(driver_utils)
+  File "<frozen importlib._bootstrap_external>", line 936, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 1073, in get_code
+  File "<frozen importlib._bootstrap_external>", line 1130, in get_data
+FileNotFoundError: [Errno 2] No such file or directory: '/opt/airflow/repo/etl/parsers/driver_utils.py'
+
+[2026-08-25 16:06:19] Ошибка в dixy_parser.py
+[2026-08-25 16:06:20] Результат парсера: auchan_parser.py
+[2026-08-25 16:06:20] Traceback (most recent call last):
+  File "/opt/airflow/repo/etl/parsers/auchan_parser.py", line 16, in <module>
+    from etl.driver_utils import create_driver
+  File "/opt/airflow/repo/etl/driver_utils.py", line 7, in <module>
+    from webdriver_manager.chrome import ChromeDriverManager
+ModuleNotFoundError: No module named 'webdriver_manager'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/opt/airflow/repo/etl/parsers/auchan_parser.py", line 25, in <module>
+    spec.loader.exec_module(driver_utils)
+  File "<frozen importlib._bootstrap_external>", line 936, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 1073, in get_code
+  File "<frozen importlib._bootstrap_external>", line 1130, in get_data
+FileNotFoundError: [Errno 2] No such file or directory: '/opt/airflow/repo/etl/parsers/driver_utils.py'
+
+[2026-08-25 16:06:20] Ошибка в auchan_parser.py
+[2026-08-25 16:11:04] Запуск ETL pipeline
+[2026-08-25 16:11:04] Найдено парсеров: 6
+[2026-08-25 16:11:16] Результат парсера: dixy_parser.py
+[2026-08-25 16:11:16] Traceback (most recent call last):
+  File "/opt/airflow/repo/etl/driver_utils.py", line 95, in create_driver
+    driver = webdriver.Chrome(service=service, options=options)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/chrome/webdriver.py", line 45, in __init__
+    super().__init__(
+  File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/chromium/webdriver.py", line 56, in __init__
+    super().__init__(
+  File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/remote/webdriver.py", line 207, in __init__
+    self.start_session(capabilities)
+  File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/remote/webdriver.py", line 291, in start_session
+    response = self.execute(Command.NEW_SESSION, caps)["value"]
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/remote/webdriver.py", line 346, in execute
+    self.error_handler.check_response(response)
+  File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/remote/errorhandler.py", line 229, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.SessionNotCreatedException: Message: session not created: Chrome instance exited. Examine ChromeDriver verbose log to determine the cause.
+Stacktrace:
+#0 0x5c86ef33828a <unknown>
+#1 0x5c86eec9cad9 <unknown>
+#2 0x5c86eecdbb27 <unknown>
+#3 0x5c86eecd74be <unknown>
+#4 0x5c86eed26cde <unknown>
+#5 0x5c86eed263cc <unknown>
+#6 0x5c86eece5e6b <unknown>
+#7 0x5c86eece6c51 <unknown>
+#8 0x5c86ef2fc7b0 <unknown>
+#9 0x5c86ef2fae2a <unknown>
+#10 0x5c86ef2e5ba5 <unknown>
+#11 0x5c86ef2fbaea <unknown>
+#12 0x5c86ef2cedf0 <unknown>
+#13 0x5c86ef323178 <unknown>
+#14 0x5c86ef323315 <unknown>
+#15 0x5c86ef336e13 <unknown>
+#16 0x70f822f50134 <unknown>
+
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/opt/airflow/repo/etl/parsers/dixy_parser.py", line 158, in <module>
+    main()
+  File "/opt/airflow/repo/etl/parsers/dixy_parser.py", line 79, in main
+    driver = create_driver(use_uc=False)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/airflow/repo/etl/driver_utils.py", line 118, in create_driver
+    driver = webdriver.Chrome(service=service, options=options)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/chrome/webdriver.py", line 45, in __init__
+    super().__init__(
+  File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/chromium/webdriver.py", line 56, in __init__
+    super().__init__(
+  File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/remote/webdriver.py", line 207, in __init__
+    self.start_session(capabilities)
+  File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/remote/webdriver.py", line 291, in start_session
+    response = self.execute(Command.NEW_SESSION, caps)["value"]
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/remote/webdriver.py", line 346, in execute
+    self.error_handler.check_response(response)
+  File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/remote/errorhandler.py", line 229, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.SessionNotCreatedException: Message: session not created: Chrome instance exited. Examine ChromeDriver verbose log to determine the cause.
+Stacktrace:
+#0 0x5638e9fd728a <unknown>
+#1 0x5638e993bad9 <unknown>
+#2 0x5638e997ab27 <unknown>
+#3 0x5638e99764be <unknown>
+#4 0x5638e99c5cde <unknown>
+#5 0x5638e99c53cc <unknown>
+#6 0x5638e9984e6b <unknown>
+#7 0x5638e9985c51 <unknown>
+#8 0x5638e9f9b7b0 <unknown>
+#9 0x5638e9f99e2a <unknown>
+#10 0x5638e9f84ba5 <unknown>
+#11 0x5638e9f9aaea <unknown>
+#12 0x5638e9f6ddf0 <unknown>
+#13 0x5638e9fc2178 <unknown>
+#14 0x5638e9fc2315 <unknown>
+#15 0x5638e9fd5e13 <unknown>
+#16 0x7d9baeeb9134 <unknown>
+
+
+[2026-08-25 16:11:16] Ошибка в dixy_parser.py
+[2026-08-25 16:21:52] Запуск ETL pipeline
+[2026-08-25 16:21:52] Найдено парсеров: 6
+[2026-08-25 16:21:58] Результат парсера: auchan_parser.py
+[2026-08-25 16:21:58] Traceback (most recent call last):
+  File "/opt/airflow/repo/etl/driver_utils.py", line 19, in create_driver
+    import undetected_chromedriver as uc
+ModuleNotFoundError: No module named 'undetected_chromedriver'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/opt/airflow/repo/etl/parsers/auchan_parser.py", line 486, in <module>
+    main()
+  File "/opt/airflow/repo/etl/parsers/auchan_parser.py", line 214, in main
+    driver = create_driver(use_uc=True)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/airflow/repo/etl/driver_utils.py", line 121, in create_driver
+    driver = webdriver.Chrome(service=service, options=options)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/chrome/webdriver.py", line 45, in __init__
+    super().__init__(
+  File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/chromium/webdriver.py", line 56, in __init__
+    super().__init__(
+  File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/remote/webdriver.py", line 207, in __init__
+    self.start_session(capabilities)
+  File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/remote/webdriver.py", line 291, in start_session
+    response = self.execute(Command.NEW_SESSION, caps)["value"]
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/remote/webdriver.py", line 346, in execute
+    self.error_handler.check_response(response)
+  File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/remote/errorhandler.py", line 229, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.SessionNotCreatedException: Message: session not created: Chrome instance exited. Examine ChromeDriver verbose log to determine the cause.
+Stacktrace:
+#0 0x63c0e127328a <unknown>
+#1 0x63c0e0bd7ad9 <unknown>
+#2 0x63c0e0c16b27 <unknown>
+#3 0x63c0e0c124be <unknown>
+#4 0x63c0e0c61cde <unknown>
+#5 0x63c0e0c613cc <unknown>
+#6 0x63c0e0c20e6b <unknown>
+#7 0x63c0e0c21c51 <unknown>
+#8 0x63c0e12377b0 <unknown>
+#9 0x63c0e1235e2a <unknown>
+#10 0x63c0e1220ba5 <unknown>
+#11 0x63c0e1236aea <unknown>
+#12 0x63c0e1209df0 <unknown>
+#13 0x63c0e125e178 <unknown>
+#14 0x63c0e125e315 <unknown>
+#15 0x63c0e1271e13 <unknown>
+#16 0x70a1253ca134 <unknown>
+
+
+[2026-08-25 16:21:58] Ошибка в auchan_parser.py
+[2026-08-25 16:22:00] Результат парсера: dixy_parser.py
+[2026-08-25 16:22:00] Traceback (most recent call last):
+  File "/opt/airflow/repo/etl/driver_utils.py", line 98, in create_driver
+    driver = webdriver.Chrome(service=service, options=options)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/chrome/webdriver.py", line 45, in __init__
+    super().__init__(
+  File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/chromium/webdriver.py", line 56, in __init__
+    super().__init__(
+  File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/remote/webdriver.py", line 207, in __init__
+    self.start_session(capabilities)
+  File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/remote/webdriver.py", line 291, in start_session
+    response = self.execute(Command.NEW_SESSION, caps)["value"]
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/remote/webdriver.py", line 346, in execute
+    self.error_handler.check_response(response)
+  File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/remote/errorhandler.py", line 229, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.SessionNotCreatedException: Message: session not created: Chrome instance exited. Examine ChromeDriver verbose log to determine the cause.
+Stacktrace:
+#0 0x5b0a20d2261e <unknown>
+#1 0x5b0a205e7a44 <unknown>
+#2 0x5b0a20622f02 <unknown>
+#3 0x5b0a2061da94 <unknown>
+#4 0x5b0a2066c547 <unknown>
+#5 0x5b0a2062a7b9 <unknown>
+#6 0x5b0a2062b3d1 <unknown>
+#7 0x5b0a20ce5826 <unknown>
+#8 0x5b0a20ce425d <unknown>
+#9 0x5b0a20ce3c0a <unknown>
+#10 0x5b0a20cd2d8a <unknown>
+#11 0x5b0a20ce4a73 <unknown>
+#12 0x5b0a20cbce26 <unknown>
+#13 0x5b0a20d0d6d5 <unknown>
+#14 0x5b0a20d0d8c2 <unknown>
+#15 0x5b0a20d210da <unknown>
+#16 0x70c6f9d5c134 <unknown>
+
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/opt/airflow/repo/etl/parsers/dixy_parser.py", line 158, in <module>
+    main()
+  File "/opt/airflow/repo/etl/parsers/dixy_parser.py", line 79, in main
+    driver = create_driver(use_uc=False)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/airflow/repo/etl/driver_utils.py", line 121, in create_driver
+    driver = webdriver.Chrome(service=service, options=options)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/chrome/webdriver.py", line 45, in __init__
+    super().__init__(
+  File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/chromium/webdriver.py", line 56, in __init__
+    super().__init__(
+  File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/remote/webdriver.py", line 207, in __init__
+    self.start_session(capabilities)
+  File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/remote/webdriver.py", line 291, in start_session
+    response = self.execute(Command.NEW_SESSION, caps)["value"]
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/remote/webdriver.py", line 346, in execute
+    self.error_handler.check_response(response)
+  File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/remote/errorhandler.py", line 229, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.SessionNotCreatedException: Message: session not created: Chrome instance exited. Examine ChromeDriver verbose log to determine the cause.
+Stacktrace:
+#0 0x5f2d427a528a <unknown>
+#1 0x5f2d42109ad9 <unknown>
+#2 0x5f2d42148b27 <unknown>
+#3 0x5f2d421444be <unknown>
+#4 0x5f2d42193cde <unknown>
+#5 0x5f2d421933cc <unknown>
+#6 0x5f2d42152e6b <unknown>
+#7 0x5f2d42153c51 <unknown>
+#8 0x5f2d427697b0 <unknown>
+#9 0x5f2d42767e2a <unknown>
+#10 0x5f2d42752ba5 <unknown>
+#11 0x5f2d42768aea <unknown>
+#12 0x5f2d4273bdf0 <unknown>
+#13 0x5f2d42790178 <unknown>
+#14 0x5f2d42790315 <unknown>
+#15 0x5f2d427a3e13 <unknown>
+#16 0x71f43a41a134 <unknown>
+
+
+[2026-08-25 16:22:00] Ошибка в dixy_parser.py
+[2026-08-25 16:22:03] Результат парсера: lenta_parser.py
+[2026-08-25 16:22:03] Traceback (most recent call last):
+  File "/opt/airflow/repo/etl/driver_utils.py", line 19, in create_driver
+    import undetected_chromedriver as uc
+ModuleNotFoundError: No module named 'undetected_chromedriver'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/opt/airflow/repo/etl/parsers/lenta_parser.py", line 156, in <module>
+    main()
+  File "/opt/airflow/repo/etl/parsers/lenta_parser.py", line 68, in main
+    driver = create_driver(use_uc=True)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/airflow/repo/etl/driver_utils.py", line 121, in create_driver
+    driver = webdriver.Chrome(service=service, options=options)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/chrome/webdriver.py", line 45, in __init__
+    super().__init__(
+  File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/chromium/webdriver.py", line 56, in __init__
+    super().__init__(
+  File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/remote/webdriver.py", line 207, in __init__
+    self.start_session(capabilities)
+  File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/remote/webdriver.py", line 291, in start_session
+    response = self.execute(Command.NEW_SESSION, caps)["value"]
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/remote/webdriver.py", line 346, in execute
+    self.error_handler.check_response(response)
+  File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/remote/errorhandler.py", line 229, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.SessionNotCreatedException: Message: session not created: Chrome instance exited. Examine ChromeDriver verbose log to determine the cause.
+Stacktrace:
+#0 0x6378c47f828a <unknown>
+#1 0x6378c415cad9 <unknown>
+#2 0x6378c419bb27 <unknown>
+#3 0x6378c41974be <unknown>
+#4 0x6378c41e6cde <unknown>
+#5 0x6378c41e63cc <unknown>
+#6 0x6378c41a5e6b <unknown>
+#7 0x6378c41a6c51 <unknown>
+#8 0x6378c47bc7b0 <unknown>
+#9 0x6378c47bae2a <unknown>
+#10 0x6378c47a5ba5 <unknown>
+#11 0x6378c47bbaea <unknown>
+#12 0x6378c478edf0 <unknown>
+#13 0x6378c47e3178 <unknown>
+#14 0x6378c47e3315 <unknown>
+#15 0x6378c47f6e13 <unknown>
+#16 0x7e6c78cc7134 <unknown>
+
+
+[2026-08-25 16:22:03] Ошибка в lenta_parser.py
+[2026-08-25 16:22:08] Результат парсера: xglobus_parser.py
+[2026-08-25 16:22:08] Traceback (most recent call last):
+  File "/opt/airflow/repo/etl/driver_utils.py", line 19, in create_driver
+    import undetected_chromedriver as uc
+ModuleNotFoundError: No module named 'undetected_chromedriver'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/opt/airflow/repo/etl/parsers/xglobus_parser.py", line 204, in <module>
+    main()
+  File "/opt/airflow/repo/etl/parsers/xglobus_parser.py", line 79, in main
+    driver = create_driver(use_uc=True)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/airflow/repo/etl/driver_utils.py", line 121, in create_driver
+    driver = webdriver.Chrome(service=service, options=options)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/chrome/webdriver.py", line 45, in __init__
+    super().__init__(
+  File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/chromium/webdriver.py", line 56, in __init__
+    super().__init__(
+  File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/remote/webdriver.py", line 207, in __init__
+    self.start_session(capabilities)
+  File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/remote/webdriver.py", line 291, in start_session
+    response = self.execute(Command.NEW_SESSION, caps)["value"]
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/remote/webdriver.py", line 346, in execute
+    self.error_handler.check_response(response)
+  File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/remote/errorhandler.py", line 229, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.SessionNotCreatedException: Message: session not created: Chrome instance exited. Examine ChromeDriver verbose log to determine the cause.
+Stacktrace:
+#0 0x5a4daaecc28a <unknown>
+#1 0x5a4daa830ad9 <unknown>
+#2 0x5a4daa86fb27 <unknown>
+#3 0x5a4daa86b4be <unknown>
+#4 0x5a4daa8bacde <unknown>
+#5 0x5a4daa8ba3cc <unknown>
+#6 0x5a4daa879e6b <unknown>
+#7 0x5a4daa87ac51 <unknown>
+#8 0x5a4daae907b0 <unknown>
+#9 0x5a4daae8ee2a <unknown>
+#10 0x5a4daae79ba5 <unknown>
+#11 0x5a4daae8faea <unknown>
+#12 0x5a4daae62df0 <unknown>
+#13 0x5a4daaeb7178 <unknown>
+#14 0x5a4daaeb7315 <unknown>
+#15 0x5a4daaecae13 <unknown>
+#16 0x7b1ae175f134 <unknown>
+
+
+[2026-08-25 16:22:08] Ошибка в xglobus_parser.py
+[2026-08-25 16:38:33] Запуск ETL pipeline
+[2026-08-25 16:38:33] Найдено парсеров: 6
+[2026-08-25 16:39:34] Результат парсера: dixy_parser.py
+[2026-08-25 16:39:34] Используется обычный Selenium Chrome
+Дикси — Яйцо куриное Окское отборное С1 10шт — 139.90 ₽ — 10шт (score=89.55223880597015)
+Дикси — Батон Коломенский Нарезной 200г — 48.99 ₽ — 200г (score=91.22807017543859)
+Дикси — Молоко Простоквашино отборное пастеризованное 3.4-4.5% — 108.90 ₽ — 930мл (score=94.64285714285714)
+Дикси — Сахар кусковой белый 1кг — 129.90 ₽ — 1кг (score=50.0)
+Дикси — Соль пищевая 1кг — 44.99 ₽ — 1 кг (score=39.34426229508197)
+Дикси — Крупа гречневая Мистраль 900г — 139.90 ₽ — 900г (score=80.0)
+Дикси — Масло Олейна подсолнечное 1л — 184.90 ₽ — 1л (score=61.728395061728406)
+Дикси — Масло Брест-Литовск сливочное 82,5% 180г — 209.90 ₽ — 180г (score=93.15068493150685)
+Дикси — Филе грудки цыпленка Петелинка — 299. ₽ — 450г (score=71.23287671232876)
+Дикси — Чай Greenfield Golden Ceylon 100г — товар не найден
+Дикси — Картофель — 35.69 ₽ — 1 кг (score=69.23076923076923)
+Дикси — Лук репчатый — 42.79 ₽ — 1 кг (score=100.0)
+Дикси — Морковь — 89.99 ₽ — 1 кг (score=70.0)
+Дикси — Капуста белокочанная — 39.99 ₽ — 1 кг (score=85.1063829787234)
+Дикси — Яблоки Гала — 179. ₽ — 1 кг (score=27.27272727272727)
+Сохранено 15 записей в /opt/airflow/repo/data/raw/dixy_prices.csv
+
+[2026-08-25 16:39:34] Парсер завершён: dixy_parser.py
+[2026-08-25 16:39:57] Запуск ETL pipeline
+[2026-08-25 16:39:57] Найдено парсеров: 6
+[2026-08-25 16:40:53] Результат парсера: dixy_parser.py
+[2026-08-25 16:40:53] Используется обычный Selenium Chrome
+Дикси — Яйцо куриное Окское отборное С1 10шт — 139.90 ₽ — 10шт (score=89.55223880597015)
+Дикси — Батон Коломенский Нарезной 200г — 48.99 ₽ — 200г (score=91.22807017543859)
+Дикси — Молоко Простоквашино отборное пастеризованное 3.4-4.5% — 108.90 ₽ — 930мл (score=94.64285714285714)
+Дикси — Сахар кусковой белый 1кг — 129.90 ₽ — 1кг (score=50.0)
+Дикси — Соль пищевая 1кг — 44.99 ₽ — 1 кг (score=39.34426229508197)
+Дикси — Крупа гречневая Мистраль 900г — 139.90 ₽ — 900г (score=80.0)
+Дикси — Масло Олейна подсолнечное 1л — 184.90 ₽ — 1л (score=61.728395061728406)
+Дикси — Масло Брест-Литовск сливочное 82,5% 180г — 209.90 ₽ — 180г (score=93.15068493150685)
+Дикси — Филе грудки цыпленка Петелинка — 299. ₽ — 450г (score=71.23287671232876)
+Дикси — Чай Greenfield Golden Ceylon 100г — товар не найден
+Дикси — Картофель — 35.69 ₽ — 1 кг (score=69.23076923076923)
+Дикси — Лук репчатый — 42.79 ₽ — 1 кг (score=100.0)
+Дикси — Морковь — 89.99 ₽ — 1 кг (score=70.0)
+Дикси — Капуста белокочанная — 39.99 ₽ — 1 кг (score=85.1063829787234)
+Дикси — Яблоки Гала — 179. ₽ — 1 кг (score=27.27272727272727)
+Сохранено 15 записей в /opt/airflow/repo/data/raw/dixy_prices.csv
+
+[2026-08-25 16:40:53] Парсер завершён: dixy_parser.py
+[2026-08-25 16:43:12] Результат парсера: auchan_parser.py
+[2026-08-25 16:43:12] Используется undetected_chromedriver
+Ошибка при создании драйвера: Message: session not created: cannot connect to chrome at 127.0.0.1:50099
+from session not created: This version of ChromeDriver only supports Chrome version 147
+Current browser version is 151.0.7922.173
+Stacktrace:
+#0 0x61c35557279a <unknown>
+#1 0x61c354f6e215 <unknown>
+#2 0x61c354fb169f <unknown>
+#3 0x61c354fb0460 <unknown>
+#4 0x61c354fa5461 <unknown>
+#5 0x61c354ff5e1e <unknown>
+#6 0x61c354ff550c <unknown>
+#7 0x61c354fb455f <unknown>
+#8 0x61c354fb5321 <unknown>
+#9 0x61c35553606b <unknown>
+#10 0x61c35553901d <unknown>
+#11 0x61c355522718 <unknown>
+#12 0x61c355539bb0 <unknown>
+#13 0x61c355509150 <unknown>
+#14 0x61c35555f5e8 <unknown>
+#15 0x61c35555f7b8 <unknown>
+#16 0x61c3555711de <unknown>
+#17 0x72dfcb892134 <unknown>
+
+[{"store": "Ашан", "product": "Яйцо куриное Окское С1 10шт", "unit": "10шт", "price": null, "date": "2026-08-25"}, {"store": "Ашан", "product": "Батон Коломенский Нарезной 200г", "unit": "200г", "price": null, "date": "2026-08-25"}, {"store": "Ашан", "product": "Молоко Простоквашино отборное пастеризованное 3.4-4.5", "unit": "1 кг", "price": null, "date": "2026-08-25"}, {"store": "Ашан", "product": "Сахар кусковой белый 1кг", "unit": "1кг", "price": null, "date": "2026-08-25"}, {"store": "Ашан", "product": "Соль пищевая 1кг", "unit": "1кг", "price": null, "date": "2026-08-25"}, {"store": "Ашан", "product": "Крупа гречневая Мистраль 900г", "unit": "900г", "price": null, "date": "2026-08-25"}, {"store": "Ашан", "product": "Масло Олейна подсолнечное 1л", "unit": "1л", "price": null, "date": "2026-08-25"}, {"store": "Ашан", "product": "Масло Брест-Литовск сливочное 82,5 180г", "unit": "180г", "price": null, "date": "2026-08-25"}, {"store": "Ашан", "product": "Филе грудки цыпленка Петелинка", "unit": "1 кг", "price": null, "date": "2026-08-25"}, {"store": "Ашан", "product": "Чай Greenfield Golden Ceylon 100г", "unit": "100г", "price": null, "date": "2026-08-25"}, {"store": "Ашан", "product": "Картофель белый, вес", "unit": "1 кг", "price": null, "date": "2026-08-25"}, {"store": "Ашан", "product": "Лук репчатый", "unit": "1 кг", "price": null, "date": "2026-08-25"}, {"store": "Ашан", "product": "Социальный товар Морковь", "unit": "1 кг", "price": null, "date": "2026-08-25"}, {"store": "Ашан", "product": "Капуста белокочанная", "unit": "1 кг", "price": null, "date": "2026-08-25"}, {"store": "Ашан", "product": "Яблоки сезонные", "unit": "1 кг", "price": null, "date": "2026-08-25"}]
+
+[2026-08-25 16:43:12] Парсер завершён: auchan_parser.py
+[2026-08-25 16:43:23] Результат парсера: xglobus_parser.py
+[2026-08-25 16:43:23] Traceback (most recent call last):
+  File "/opt/airflow/repo/etl/parsers/xglobus_parser.py", line 204, in <module>
+    main()
+  File "/opt/airflow/repo/etl/parsers/xglobus_parser.py", line 82, in main
+    driver.get("https://globus.ru/")
+  File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/remote/webdriver.py", line 355, in get
+    self.execute(Command.GET, {"url": url})
+  File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/remote/webdriver.py", line 346, in execute
+    self.error_handler.check_response(response)
+  File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/remote/errorhandler.py", line 229, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.WebDriverException: Message: unknown error: net::ERR_CONNECTION_CLOSED
+  (Session info: chrome=151.0.7922.173)
+Stacktrace:
+#0 0x58a0af78b61e <unknown>
+#1 0x58a0af050a44 <unknown>
+#2 0x58a0af04d9ee <unknown>
+#3 0x58a0af039631 <unknown>
+#4 0x58a0af03b18e <unknown>
+#5 0x58a0af039a27 <unknown>
+#6 0x58a0af03918a <unknown>
+#7 0x58a0af0390e2 <unknown>
+#8 0x58a0af037589 <unknown>
+#9 0x58a0af0378da <unknown>
+#10 0x58a0af054a1c <unknown>
+#11 0x58a0af0e7144 <unknown>
+#12 0x58a0af0e6bc7 <unknown>
+#13 0x58a0af0937b9 <unknown>
+#14 0x58a0af0943d1 <unknown>
+#15 0x58a0af74e826 <unknown>
+#16 0x58a0af74d25d <unknown>
+#17 0x58a0af74cc0a <unknown>
+#18 0x58a0af73bd8a <unknown>
+#19 0x58a0af74da73 <unknown>
+#20 0x58a0af725e26 <unknown>
+#21 0x58a0af7766d5 <unknown>
+#22 0x58a0af7768c2 <unknown>
+#23 0x58a0af78a0da <unknown>
+#24 0x7b9302c09134 <unknown>
+
+
+[2026-08-25 16:43:23] Ошибка в xglobus_parser.py
+[2026-08-25 16:46:13] Результат парсера: xmagnit_parser.py
+[2026-08-25 16:46:13] Используется undetected_chromedriver
+Ошибка при создании драйвера: Message: session not created: cannot connect to chrome at 127.0.0.1:54297
+from session not created: This version of ChromeDriver only supports Chrome version 147
+Current browser version is 151.0.7922.173
+Stacktrace:
+#0 0x603409ec179a <unknown>
+#1 0x6034098bd215 <unknown>
+#2 0x60340990069f <unknown>
+#3 0x6034098ff460 <unknown>
+#4 0x6034098f4461 <unknown>
+#5 0x603409944e1e <unknown>
+#6 0x60340994450c <unknown>
+#7 0x60340990355f <unknown>
+#8 0x603409904321 <unknown>
+#9 0x603409e8506b <unknown>
+#10 0x603409e8801d <unknown>
+#11 0x603409e71718 <unknown>
+#12 0x603409e88bb0 <unknown>
+#13 0x603409e58150 <unknown>
+#14 0x603409eae5e8 <unknown>
+#15 0x603409eae7b8 <unknown>
+#16 0x603409ec01de <unknown>
+#17 0x7bc41f6d7134 <unknown>
+
+[i] Выбираем магазин
+[✓] Поле поиска адреса найдено
+[i] Введен адрес: Панфилова 2
+[✓] Нажата кнопка 'Выбрать'
+[✓] Магазин выбран по адресу: Панфилова 2
+Яйцо Окское С1 → 102 (Яйцо Окское С1 белые 10шт)
+Батон Коломенский Нарезной → 52 (Батон Нарезной нарезанный БКК Коломенский 200г)
+Молоко Простоквашино отборное пастеризованное 3.4-4.5% → 99 (Молоко Простоквашино отборное пастеризованное 3.4-4.5% 930мл)
+Сахар кусковой белый 1кг → 59,99 (Сахар Чайкофский белый кусковой 500г)
+Соль пищевая 1кг → 24 (Соль Экстра пищевая 1кг)
+Крупа гречневая Мистраль 900г → 115 (Крупа Мистраль Гречневая ядрица 900г)
+Масло Олейна подсолнечное 1л → 133 (Масло подсолнечное Олейна 1л)
+Масло Брест-Литовск сливочное 82,5% 180г → 169,99 (Масло сливочное Брест-Литовск 72.5% 180г)
+Филе грудки цыпленка Петелинка → 1 (Филе цыпленка-бройлера Петелинка)
+Чай Greenfield Golden Ceylon 100г → 269,99 (Чай черный Greenfield Golden Ceylon 200г)
+Картофель → 96 (Картофель)
+Лук репчатый → 48,99 (Лук репчатый)
+Морковь → 52,5 (Морковь)
+Капуста белокочанная → 216 (Капуста белокочанная)
+Яблоки Гала → 159,2 (Яблоки Гала)
+[OK] Сохранено: /opt/airflow/repo/data/raw/magnit_prices.csv
+
+[2026-08-25 16:46:13] Парсер завершён: xmagnit_parser.py
+[2026-08-25 16:46:35] Результат парсера: yandex_products_parser.py
+[2026-08-25 16:46:35] Traceback (most recent call last):
+  File "/opt/airflow/repo/etl/parsers/yandex_products_parser.py", line 182, in <module>
+    main()
+  File "/opt/airflow/repo/etl/parsers/yandex_products_parser.py", line 127, in main
+    driver = create_driver()
+             ^^^^^^^^^^^^^^^
+  File "/opt/airflow/repo/etl/parsers/yandex_products_parser.py", line 74, in create_driver
+    return webdriver.Chrome(options=options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/chrome/webdriver.py", line 45, in __init__
+    super().__init__(
+  File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/chromium/webdriver.py", line 56, in __init__
+    super().__init__(
+  File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/remote/webdriver.py", line 207, in __init__
+    self.start_session(capabilities)
+  File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/remote/webdriver.py", line 291, in start_session
+    response = self.execute(Command.NEW_SESSION, caps)["value"]
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/remote/webdriver.py", line 346, in execute
+    self.error_handler.check_response(response)
+  File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/remote/errorhandler.py", line 229, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.SessionNotCreatedException: Message: session not created: Chrome instance exited. Examine ChromeDriver verbose log to determine the cause.
+Stacktrace:
+#0 0x5e6c0502361e <unknown>
+#1 0x5e6c048e8a44 <unknown>
+#2 0x5e6c04923f02 <unknown>
+#3 0x5e6c0491ea94 <unknown>
+#4 0x5e6c0496d547 <unknown>
+#5 0x5e6c0492b7b9 <unknown>
+#6 0x5e6c0492c3d1 <unknown>
+#7 0x5e6c04fe6826 <unknown>
+#8 0x5e6c04fe525d <unknown>
+#9 0x5e6c04fe4c0a <unknown>
+#10 0x5e6c04fd3d8a <unknown>
+#11 0x5e6c04fe5a73 <unknown>
+#12 0x5e6c04fbde26 <unknown>
+#13 0x5e6c0500e6d5 <unknown>
+#14 0x5e6c0500e8c2 <unknown>
+#15 0x5e6c050220da <unknown>
+#16 0x7823811d7134 <unknown>
+
+
+[2026-08-25 16:46:35] Ошибка в yandex_products_parser.py
+[2026-08-25 16:46:38] Результат парсера: lenta_parser.py
+[2026-08-25 16:46:38] Используется undetected_chromedriver
+Ошибка при создании драйвера: Message: session not created: cannot connect to chrome at 127.0.0.1:49641
+from session not created: This version of ChromeDriver only supports Chrome version 147
+Current browser version is 151.0.7922.173
+Stacktrace:
+#0 0x5846da64379a <unknown>
+#1 0x5846da03f215 <unknown>
+#2 0x5846da08269f <unknown>
+#3 0x5846da081460 <unknown>
+#4 0x5846da076461 <unknown>
+#5 0x5846da0c6e1e <unknown>
+#6 0x5846da0c650c <unknown>
+#7 0x5846da08555f <unknown>
+#8 0x5846da086321 <unknown>
+#9 0x5846da60706b <unknown>
+#10 0x5846da60a01d <unknown>
+#11 0x5846da5f3718 <unknown>
+#12 0x5846da60abb0 <unknown>
+#13 0x5846da5da150 <unknown>
+#14 0x5846da6305e8 <unknown>
+#15 0x5846da6307b8 <unknown>
+#16 0x5846da6421de <unknown>
+#17 0x78b5a6fd6134 <unknown>
+
+Ищем: Яйцо куриное Окское С1 10шт
+Ошибка: Яйцо куриное Окское С1 10шт: Message: 
+
+Ищем: Батон Коломенский Нарезной 200г
+Ошибка: Батон Коломенский Нарезной 200г: Message: 
+
+Ищем: Молоко пастеризованное ПРОСТОКВАШИНО отборное
+Ошибка: Молоко пастеризованное ПРОСТОКВАШИНО отборное: Message: 
+
+Ищем: Сахар кусковой белый 1кг
+Ошибка: Сахар кусковой белый 1кг: Message: 
+
+Ищем: Соль пищевая 1кг
+Ошибка: Соль пищевая 1кг: Message: 
+
+Ищем: Крупа гречневая Мистраль 900г
+Ошибка: Крупа гречневая Мистраль 900г: Message: 
+
+Ищем: Масло Олейна подсолнечное 1л
+Ошибка: Масло Олейна подсолнечное 1л: Message: 
+
+Ищем: Масло Брест-Литовск сливочное 82,5% 180г
+Ошибка: Масло Брест-Литовск сливочное 82,5% 180г: Message: 
+
+Ищем: Филе грудки цыпленка Петелинка
+Ошибка: Филе грудки цыпленка Петелинка: Message: 
+
+Ищем: Чай Greenfield Golden Ceylon 100г
+Ошибка: Чай Greenfield Golden Ceylon 100г: Message: 
+
+Ищем: Картофель
+Ошибка: Картофель: Message: 
+
+Ищем: Лук репчатый
+Ошибка: Лук репчатый: Message: 
+
+Ищем: Морковь
+Ошибка: Морковь: Message: 
+
+Ищем: Капуста белокочанная
+Ошибка: Капуста белокочанная: Message: 
+
+Ищем: Яблоки Гала
+Ошибка: Яблоки Гала: Message: 
+
+Сохранено 15 записей в /opt/airflow/repo/data/raw/lenta_prices.csv
+
+[2026-08-25 16:46:38] Парсер завершён: lenta_parser.py
+[2026-08-25 16:46:38] Некоторые парсеры завершились с ошибками:
+[2026-08-25 16:46:38] - xglobus_parser.py
+[2026-08-25 16:46:38] - yandex_products_parser.py
+[2026-08-25 16:46:38] Запуск transform шага
+[2026-08-25 16:46:38] Transform завершён
+[2026-08-25 16:46:38] Загрузка данных в PostgreSQL
+[2026-08-25 16:46:38] Ошибка загрузки clean_prices.csv: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+	Is the server running locally and accepting connections on that socket?
+
+[2026-08-25 16:46:38] Запуск ML шага
+[2026-08-25 16:46:38] Запуск ML обучения
+[2026-08-25 16:46:39] === LOAD ===
+
+[2026-08-25 16:46:39] Ошибка ML обучения
+[2026-08-25 16:46:39] Traceback (most recent call last):
+  File "/opt/airflow/repo/ml/price_model.py", line 330, in <module>
+    main()
+  File "/opt/airflow/repo/ml/price_model.py", line 262, in main
+    df = load_data()
+         ^^^^^^^^^^^
+  File "/opt/airflow/repo/ml/price_model.py", line 82, in load_data
+    conn = psycopg2.connect(**DB_CONFIG)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/airflow/.local/lib/python3.11/site-packages/psycopg2/__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.OperationalError: connection to server at "localhost" (::1), port 5432 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+connection to server at "localhost" (127.0.0.1), port 5432 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+
+
+[2026-08-25 16:46:39] ETL pipeline завершён

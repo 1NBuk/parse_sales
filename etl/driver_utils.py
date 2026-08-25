@@ -1,4 +1,5 @@
 # driver_utils.py
+import os
 import random
 import time
 from selenium import webdriver
@@ -7,20 +8,21 @@ from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 
 
-def create_driver(use_uc=False, headless=False, disable_bot_detection=True, random_user_agent=False):
+def create_driver(use_uc=False, headless=None, disable_bot_detection=True, random_user_agent=False):
     """
     Создает драйвер с настройками для обхода обнаружения
     """
+    if headless is None:
+        headless = os.environ.get("SELENIUM_HEADLESS", "0") == "1"
+
     try:
         if use_uc:
             # Используем undetected_chromedriver
             import undetected_chromedriver as uc
             print("Используется undetected_chromedriver")
 
-            # Настройки для UC
             options = uc.ChromeOptions()
 
-            # Базовые настройки
             options.add_argument("--disable-blink-features=AutomationControlled")
             options.add_argument("--disable-dev-shm-usage")
             options.add_argument("--no-sandbox")
@@ -28,11 +30,8 @@ def create_driver(use_uc=False, headless=False, disable_bot_detection=True, rand
             options.add_argument("start-maximized")
             options.add_argument("--disable-infobars")
             options.add_argument("--disable-notifications")
-
-            # Отключаем автоматическое управление браузером
             options.add_argument("--disable-browser-side-navigation")
 
-            # Случайный User-Agent
             if random_user_agent:
                 user_agents = [
                     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -43,7 +42,6 @@ def create_driver(use_uc=False, headless=False, disable_bot_detection=True, rand
                 ]
                 options.add_argument(f"user-agent={random.choice(user_agents)}")
 
-            # Режим headless
             if headless:
                 options.add_argument("--headless")
 
@@ -54,28 +52,24 @@ def create_driver(use_uc=False, headless=False, disable_bot_detection=True, rand
             )
 
         else:
-            # Используем обычный Selenium Chrome
             print("Используется обычный Selenium Chrome")
 
             options = Options()
-
-            # Базовые настройки для обхода обнаружения
             options.add_argument("--disable-blink-features=AutomationControlled")
             options.add_experimental_option("excludeSwitches", ["enable-automation"])
             options.add_experimental_option('useAutomationExtension', False)
-
-            # Дополнительные настройки
             options.add_argument("--disable-dev-shm-usage")
             options.add_argument("--no-sandbox")
             options.add_argument("--disable-gpu")
             options.add_argument("start-maximized")
             options.add_argument("--disable-infobars")
             options.add_argument("--disable-notifications")
-
-            # Отключаем автоматическое управление браузером
             options.add_argument("--disable-browser-side-navigation")
 
-            # Случайный User-Agent
+            chrome_bin = os.environ.get("CHROME_BIN")
+            if chrome_bin:
+                options.binary_location = chrome_bin
+
             if random_user_agent:
                 user_agents = [
                     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -86,12 +80,15 @@ def create_driver(use_uc=False, headless=False, disable_bot_detection=True, rand
                 ]
                 options.add_argument(f"user-agent={random.choice(user_agents)}")
 
-            # Режим headless
             if headless:
                 options.add_argument("--headless=new")
 
-            # Инициализация драйвера
-            service = Service(ChromeDriverManager().install())
+            chromedriver_path = os.environ.get("CHROMEDRIVER_PATH")
+            if chromedriver_path:
+                service = Service(chromedriver_path)
+            else:
+                service = Service(ChromeDriverManager().install())
+
             driver = webdriver.Chrome(service=service, options=options)
 
         # Размер окна (только если не headless)
@@ -114,7 +111,20 @@ def create_driver(use_uc=False, headless=False, disable_bot_detection=True, rand
             options = Options()
             options.add_argument("--disable-blink-features=AutomationControlled")
             options.add_argument("--no-sandbox")
-            service = Service(ChromeDriverManager().install())
+
+            chrome_bin = os.environ.get("CHROME_BIN")
+            if chrome_bin:
+                options.binary_location = chrome_bin
+
+            if headless:
+                options.add_argument("--headless=new")
+
+            chromedriver_path = os.environ.get("CHROMEDRIVER_PATH")
+            if chromedriver_path:
+                service = Service(chromedriver_path)
+            else:
+                service = Service(ChromeDriverManager().install())
+
             driver = webdriver.Chrome(service=service, options=options)
             return driver
         except Exception as e2:

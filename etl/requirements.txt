@@ -23,3 +23,5 @@ webdriver-manager
 psycopg2
 streamlit
 plotly
+webdriver-manager
+undetected-chromedriver

@@ -1,0 +1,30 @@
+PG_HOST=
+PG_DATABASE=
+PG_USER=
+PG_PASSWORD=
+
+GOOGLE_DRIVE_FOLDER_ID=
+GOOGLE_SERVICE_ACCOUNT=
+
+# PostgreSQL
+POSTGRES_DB=prices_db
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=your_strong_password
+
+# Airflow
+AIRFLOW_FERNET_KEY=your_fernet_key_here_run_python_cryptography_fernet_generate_key
+AIRFLOW_SECRET_KEY=your_secret_key_here
+# Linux only — set to your host user id (run `id -u`) to avoid dag/log
+# files being written as root inside the mounted volumes. Not needed on
+# Mac/Windows Docker Desktop.
+AIRFLOW_UID=50000
+
+# Alerts (опционально)
+TELEGRAM_TOKEN=
+TELEGRAM_CHAT_ID=
+
+# Модель
+MODEL_PATH=ml/models/catboost_latest.cbm
+
+# Деградация — порог MAPE (в процентах)
+MAPE_THRESHOLD=15.0

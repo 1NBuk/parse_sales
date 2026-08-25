@@ -1,0 +1,21 @@
+[2026-08-25T13:19:23.144+0000] {local_task_job_runner.py:120} INFO - ::group::Pre task execution logs
+[2026-08-25T13:19:23.163+0000] {taskinstance.py:2076} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: price_etl_pipeline.run_scraping_etl manual__2026-08-25T13:19:22.267026+00:00 [queued]>
+[2026-08-25T13:19:23.168+0000] {taskinstance.py:2076} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: price_etl_pipeline.run_scraping_etl manual__2026-08-25T13:19:22.267026+00:00 [queued]>
+[2026-08-25T13:19:23.169+0000] {taskinstance.py:2306} INFO - Starting attempt 1 of 3
+[2026-08-25T13:19:23.176+0000] {taskinstance.py:2330} INFO - Executing <Task(BashOperator): run_scraping_etl> on 2026-08-25 13:19:22.267026+00:00
+[2026-08-25T13:19:23.179+0000] {standard_task_runner.py:64} INFO - Started process 515 to run task
+[2026-08-25T13:19:23.180+0000] {standard_task_runner.py:90} INFO - Running: ['airflow', 'tasks', 'run', 'price_etl_pipeline', 'run_scraping_etl', 'manual__2026-08-25T13:19:22.267026+00:00', '--job-id', '13', '--raw', '--subdir', 'DAGS_FOLDER/price_etl_dag.py', '--cfg-path', '/tmp/tmp12hiu1au']
+[2026-08-25T13:19:23.182+0000] {standard_task_runner.py:91} INFO - Job 13: Subtask run_scraping_etl
+[2026-08-25T13:19:23.216+0000] {task_command.py:426} INFO - Running <TaskInstance: price_etl_pipeline.run_scraping_etl manual__2026-08-25T13:19:22.267026+00:00 [running]> on host 358c605ade12
+[2026-08-25T13:19:23.353+0000] {taskinstance.py:2648} INFO - Exporting env vars: AIRFLOW_CTX_DAG_OWNER='veta' AIRFLOW_CTX_DAG_ID='price_etl_pipeline' AIRFLOW_CTX_TASK_ID='run_scraping_etl' AIRFLOW_CTX_EXECUTION_DATE='2026-08-25T13:19:22.267026+00:00' AIRFLOW_CTX_TRY_NUMBER='1' AIRFLOW_CTX_DAG_RUN_ID='manual__2026-08-25T13:19:22.267026+00:00'
+[2026-08-25T13:19:23.354+0000] {taskinstance.py:430} INFO - ::endgroup::
+[2026-08-25T13:19:23.358+0000] {subprocess.py:63} INFO - Tmp dir root location: /tmp
+[2026-08-25T13:19:23.359+0000] {subprocess.py:75} INFO - Running command: ['/usr/bin/bash', '-c', 'python /opt/airflow/repo/etl/run_pipeline.py']
+[2026-08-25T13:19:23.364+0000] {subprocess.py:86} INFO - Output:
+[2026-08-25T13:19:23.921+0000] {subprocess.py:93} INFO - [2026-08-25 13:19:23] Pipeline уже запускался сегодня. Выход.
+[2026-08-25T13:19:23.947+0000] {subprocess.py:97} INFO - Command exited with return code 0
+[2026-08-25T13:19:23.948+0000] {taskinstance.py:441} INFO - ::group::Post task execution logs
+[2026-08-25T13:19:23.963+0000] {taskinstance.py:1206} INFO - Marking task as SUCCESS. dag_id=price_etl_pipeline, task_id=run_scraping_etl, run_id=manual__2026-08-25T13:19:22.267026+00:00, execution_date=20260825T131922, start_date=20260825T131923, end_date=20260825T131923
+[2026-08-25T13:19:23.995+0000] {local_task_job_runner.py:243} INFO - Task exited with return code 0
+[2026-08-25T13:19:24.005+0000] {taskinstance.py:3503} INFO - 1 downstream tasks scheduled from follow-on schedule check
+[2026-08-25T13:19:24.007+0000] {local_task_job_runner.py:222} INFO - ::endgroup::

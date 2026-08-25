@@ -1,0 +1,320 @@
+[2026-08-25T16:39:56.928+0000] {local_task_job_runner.py:120} INFO - ::group::Pre task execution logs
+[2026-08-25T16:39:56.945+0000] {taskinstance.py:2076} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: price_etl_pipeline.run_scraping_etl manual__2026-08-25T16:39:56.381319+00:00 [queued]>
+[2026-08-25T16:39:56.949+0000] {taskinstance.py:2076} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: price_etl_pipeline.run_scraping_etl manual__2026-08-25T16:39:56.381319+00:00 [queued]>
+[2026-08-25T16:39:56.950+0000] {taskinstance.py:2306} INFO - Starting attempt 1 of 3
+[2026-08-25T16:39:56.957+0000] {taskinstance.py:2330} INFO - Executing <Task(BashOperator): run_scraping_etl> on 2026-08-25 16:39:56.381319+00:00
+[2026-08-25T16:39:56.960+0000] {standard_task_runner.py:63} INFO - Started process 984 to run task
+[2026-08-25T16:39:56.961+0000] {standard_task_runner.py:90} INFO - Running: ['airflow', 'tasks', 'run', 'price_etl_pipeline', 'run_scraping_etl', 'manual__2026-08-25T16:39:56.381319+00:00', '--job-id', '35', '--raw', '--subdir', 'DAGS_FOLDER/price_etl_dag.py', '--cfg-path', '/tmp/tmpvq7heqdm']
+[2026-08-25T16:39:56.962+0000] {standard_task_runner.py:91} INFO - Job 35: Subtask run_scraping_etl
+[2026-08-25T16:39:56.986+0000] {task_command.py:426} INFO - Running <TaskInstance: price_etl_pipeline.run_scraping_etl manual__2026-08-25T16:39:56.381319+00:00 [running]> on host 85b84008e6d3
+[2026-08-25T16:39:57.104+0000] {taskinstance.py:2648} INFO - Exporting env vars: AIRFLOW_CTX_DAG_OWNER='veta' AIRFLOW_CTX_DAG_ID='price_etl_pipeline' AIRFLOW_CTX_TASK_ID='run_scraping_etl' AIRFLOW_CTX_EXECUTION_DATE='2026-08-25T16:39:56.381319+00:00' AIRFLOW_CTX_TRY_NUMBER='1' AIRFLOW_CTX_DAG_RUN_ID='manual__2026-08-25T16:39:56.381319+00:00'
+[2026-08-25T16:39:57.104+0000] {taskinstance.py:430} INFO - ::endgroup::
+[2026-08-25T16:39:57.110+0000] {subprocess.py:63} INFO - Tmp dir root location: /tmp
+[2026-08-25T16:39:57.110+0000] {subprocess.py:75} INFO - Running command: ['/usr/bin/bash', '-c', 'python /opt/airflow/repo/etl/run_pipeline.py']
+[2026-08-25T16:39:57.116+0000] {subprocess.py:86} INFO - Output:
+[2026-08-25T16:39:57.635+0000] {subprocess.py:93} INFO - [2026-08-25 16:39:57] Запуск ETL pipeline
+[2026-08-25T16:39:57.636+0000] {subprocess.py:93} INFO - [2026-08-25 16:39:57] Найдено парсеров: 6
+[2026-08-25T16:46:13.745+0000] {subprocess.py:93} INFO - [2026-08-25 16:40:53] Результат парсера: dixy_parser.py
+[2026-08-25T16:46:13.746+0000] {subprocess.py:93} INFO - [2026-08-25 16:40:53] Используется обычный Selenium Chrome
+[2026-08-25T16:46:13.746+0000] {subprocess.py:93} INFO - Дикси — Яйцо куриное Окское отборное С1 10шт — 139.90 ₽ — 10шт (score=89.55223880597015)
+[2026-08-25T16:46:13.746+0000] {subprocess.py:93} INFO - Дикси — Батон Коломенский Нарезной 200г — 48.99 ₽ — 200г (score=91.22807017543859)
+[2026-08-25T16:46:13.747+0000] {subprocess.py:93} INFO - Дикси — Молоко Простоквашино отборное пастеризованное 3.4-4.5% — 108.90 ₽ — 930мл (score=94.64285714285714)
+[2026-08-25T16:46:13.747+0000] {subprocess.py:93} INFO - Дикси — Сахар кусковой белый 1кг — 129.90 ₽ — 1кг (score=50.0)
+[2026-08-25T16:46:13.747+0000] {subprocess.py:93} INFO - Дикси — Соль пищевая 1кг — 44.99 ₽ — 1 кг (score=39.34426229508197)
+[2026-08-25T16:46:13.748+0000] {subprocess.py:93} INFO - Дикси — Крупа гречневая Мистраль 900г — 139.90 ₽ — 900г (score=80.0)
+[2026-08-25T16:46:13.748+0000] {subprocess.py:93} INFO - Дикси — Масло Олейна подсолнечное 1л — 184.90 ₽ — 1л (score=61.728395061728406)
+[2026-08-25T16:46:13.748+0000] {subprocess.py:93} INFO - Дикси — Масло Брест-Литовск сливочное 82,5% 180г — 209.90 ₽ — 180г (score=93.15068493150685)
+[2026-08-25T16:46:13.748+0000] {subprocess.py:93} INFO - Дикси — Филе грудки цыпленка Петелинка — 299. ₽ — 450г (score=71.23287671232876)
+[2026-08-25T16:46:13.749+0000] {subprocess.py:93} INFO - Дикси — Чай Greenfield Golden Ceylon 100г — товар не найден
+[2026-08-25T16:46:13.749+0000] {subprocess.py:93} INFO - Дикси — Картофель — 35.69 ₽ — 1 кг (score=69.23076923076923)
+[2026-08-25T16:46:13.749+0000] {subprocess.py:93} INFO - Дикси — Лук репчатый — 42.79 ₽ — 1 кг (score=100.0)
+[2026-08-25T16:46:13.750+0000] {subprocess.py:93} INFO - Дикси — Морковь — 89.99 ₽ — 1 кг (score=70.0)
+[2026-08-25T16:46:13.750+0000] {subprocess.py:93} INFO - Дикси — Капуста белокочанная — 39.99 ₽ — 1 кг (score=85.1063829787234)
+[2026-08-25T16:46:13.750+0000] {subprocess.py:93} INFO - Дикси — Яблоки Гала — 179. ₽ — 1 кг (score=27.27272727272727)
+[2026-08-25T16:46:13.750+0000] {subprocess.py:93} INFO - Сохранено 15 записей в /opt/airflow/repo/data/raw/dixy_prices.csv
+[2026-08-25T16:46:13.751+0000] {subprocess.py:93} INFO - 
+[2026-08-25T16:46:13.751+0000] {subprocess.py:93} INFO - [2026-08-25 16:40:53] Парсер завершён: dixy_parser.py
+[2026-08-25T16:46:13.751+0000] {subprocess.py:93} INFO - [2026-08-25 16:43:12] Результат парсера: auchan_parser.py
+[2026-08-25T16:46:13.752+0000] {subprocess.py:93} INFO - [2026-08-25 16:43:12] Используется undetected_chromedriver
+[2026-08-25T16:46:13.752+0000] {subprocess.py:93} INFO - Ошибка при создании драйвера: Message: session not created: cannot connect to chrome at 127.0.0.1:50099
+[2026-08-25T16:46:13.752+0000] {subprocess.py:93} INFO - from session not created: This version of ChromeDriver only supports Chrome version 147
+[2026-08-25T16:46:13.752+0000] {subprocess.py:93} INFO - Current browser version is 151.0.7922.173
+[2026-08-25T16:46:13.753+0000] {subprocess.py:93} INFO - Stacktrace:
+[2026-08-25T16:46:13.753+0000] {subprocess.py:93} INFO - #0 0x61c35557279a <unknown>
+[2026-08-25T16:46:13.753+0000] {subprocess.py:93} INFO - #1 0x61c354f6e215 <unknown>
+[2026-08-25T16:46:13.754+0000] {subprocess.py:93} INFO - #2 0x61c354fb169f <unknown>
+[2026-08-25T16:46:13.754+0000] {subprocess.py:93} INFO - #3 0x61c354fb0460 <unknown>
+[2026-08-25T16:46:13.754+0000] {subprocess.py:93} INFO - #4 0x61c354fa5461 <unknown>
+[2026-08-25T16:46:13.754+0000] {subprocess.py:93} INFO - #5 0x61c354ff5e1e <unknown>
+[2026-08-25T16:46:13.755+0000] {subprocess.py:93} INFO - #6 0x61c354ff550c <unknown>
+[2026-08-25T16:46:13.755+0000] {subprocess.py:93} INFO - #7 0x61c354fb455f <unknown>
+[2026-08-25T16:46:13.755+0000] {subprocess.py:93} INFO - #8 0x61c354fb5321 <unknown>
+[2026-08-25T16:46:13.755+0000] {subprocess.py:93} INFO - #9 0x61c35553606b <unknown>
+[2026-08-25T16:46:13.756+0000] {subprocess.py:93} INFO - #10 0x61c35553901d <unknown>
+[2026-08-25T16:46:13.756+0000] {subprocess.py:93} INFO - #11 0x61c355522718 <unknown>
+[2026-08-25T16:46:13.756+0000] {subprocess.py:93} INFO - #12 0x61c355539bb0 <unknown>
+[2026-08-25T16:46:13.757+0000] {subprocess.py:93} INFO - #13 0x61c355509150 <unknown>
+[2026-08-25T16:46:13.757+0000] {subprocess.py:93} INFO - #14 0x61c35555f5e8 <unknown>
+[2026-08-25T16:46:13.757+0000] {subprocess.py:93} INFO - #15 0x61c35555f7b8 <unknown>
+[2026-08-25T16:46:13.757+0000] {subprocess.py:93} INFO - #16 0x61c3555711de <unknown>
+[2026-08-25T16:46:13.758+0000] {subprocess.py:93} INFO - #17 0x72dfcb892134 <unknown>
+[2026-08-25T16:46:13.758+0000] {subprocess.py:93} INFO - 
+[2026-08-25T16:46:13.758+0000] {subprocess.py:93} INFO - [{"store": "Ашан", "product": "Яйцо куриное Окское С1 10шт", "unit": "10шт", "price": null, "date": "2026-08-25"}, {"store": "Ашан", "product": "Батон Коломенский Нарезной 200г", "unit": "200г", "price": null, "date": "2026-08-25"}, {"store": "Ашан", "product": "Молоко Простоквашино отборное пастеризованное 3.4-4.5", "unit": "1 кг", "price": null, "date": "2026-08-25"}, {"store": "Ашан", "product": "Сахар кусковой белый 1кг", "unit": "1кг", "price": null, "date": "2026-08-25"}, {"store": "Ашан", "product": "Соль пищевая 1кг", "unit": "1кг", "price": null, "date": "2026-08-25"}, {"store": "Ашан", "product": "Крупа гречневая Мистраль 900г", "unit": "900г", "price": null, "date": "2026-08-25"}, {"store": "Ашан", "product": "Масло Олейна подсолнечное 1л", "unit": "1л", "price": null, "date": "2026-08-25"}, {"store": "Ашан", "product": "Масло Брест-Литовск сливочное 82,5 180г", "unit": "180г", "price": null, "date": "2026-08-25"}, {"store": "Ашан", "product": "Филе грудки цыпленка Петелинка", "unit": "1 кг", "price": null, "date": "2026-08-25"}, {"store": "Ашан", "product": "Чай Greenfield Golden Ceylon 100г", "unit": "100г", "price": null, "date": "2026-08-25"}, {"store": "Ашан", "product": "Картофель белый, вес", "unit": "1 кг", "price": null, "date": "2026-08-25"}, {"store": "Ашан", "product": "Лук репчатый", "unit": "1 кг", "price": null, "date": "2026-08-25"}, {"store": "Ашан", "product": "Социальный товар Морковь", "unit": "1 кг", "price": null, "date": "2026-08-25"}, {"store": "Ашан", "product": "Капуста белокочанная", "unit": "1 кг", "price": null, "date": "2026-08-25"}, {"store": "Ашан", "product": "Яблоки сезонные", "unit": "1 кг", "price": null, "date": "2026-08-25"}]
+[2026-08-25T16:46:13.759+0000] {subprocess.py:93} INFO - 
+[2026-08-25T16:46:13.759+0000] {subprocess.py:93} INFO - [2026-08-25 16:43:12] Парсер завершён: auchan_parser.py
+[2026-08-25T16:46:13.759+0000] {subprocess.py:93} INFO - [2026-08-25 16:43:23] Результат парсера: xglobus_parser.py
+[2026-08-25T16:46:13.759+0000] {subprocess.py:93} INFO - [2026-08-25 16:43:23] Traceback (most recent call last):
+[2026-08-25T16:46:13.760+0000] {subprocess.py:93} INFO -   File "/opt/airflow/repo/etl/parsers/xglobus_parser.py", line 204, in <module>
+[2026-08-25T16:46:13.760+0000] {subprocess.py:93} INFO -     main()
+[2026-08-25T16:46:13.760+0000] {subprocess.py:93} INFO -   File "/opt/airflow/repo/etl/parsers/xglobus_parser.py", line 82, in main
+[2026-08-25T16:46:13.760+0000] {subprocess.py:93} INFO -     driver.get("https://globus.ru/")
+[2026-08-25T16:46:13.761+0000] {subprocess.py:93} INFO -   File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/remote/webdriver.py", line 355, in get
+[2026-08-25T16:46:13.761+0000] {subprocess.py:93} INFO -     self.execute(Command.GET, {"url": url})
+[2026-08-25T16:46:13.761+0000] {subprocess.py:93} INFO -   File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/remote/webdriver.py", line 346, in execute
+[2026-08-25T16:46:13.762+0000] {subprocess.py:93} INFO -     self.error_handler.check_response(response)
+[2026-08-25T16:46:13.762+0000] {subprocess.py:93} INFO -   File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/remote/errorhandler.py", line 229, in check_response
+[2026-08-25T16:46:13.762+0000] {subprocess.py:93} INFO -     raise exception_class(message, screen, stacktrace)
+[2026-08-25T16:46:13.762+0000] {subprocess.py:93} INFO - selenium.common.exceptions.WebDriverException: Message: unknown error: net::ERR_CONNECTION_CLOSED
+[2026-08-25T16:46:13.763+0000] {subprocess.py:93} INFO -   (Session info: chrome=151.0.7922.173)
+[2026-08-25T16:46:13.763+0000] {subprocess.py:93} INFO - Stacktrace:
+[2026-08-25T16:46:13.763+0000] {subprocess.py:93} INFO - #0 0x58a0af78b61e <unknown>
+[2026-08-25T16:46:13.764+0000] {subprocess.py:93} INFO - #1 0x58a0af050a44 <unknown>
+[2026-08-25T16:46:13.764+0000] {subprocess.py:93} INFO - #2 0x58a0af04d9ee <unknown>
+[2026-08-25T16:46:13.764+0000] {subprocess.py:93} INFO - #3 0x58a0af039631 <unknown>
+[2026-08-25T16:46:13.764+0000] {subprocess.py:93} INFO - #4 0x58a0af03b18e <unknown>
+[2026-08-25T16:46:13.765+0000] {subprocess.py:93} INFO - #5 0x58a0af039a27 <unknown>
+[2026-08-25T16:46:13.765+0000] {subprocess.py:93} INFO - #6 0x58a0af03918a <unknown>
+[2026-08-25T16:46:13.765+0000] {subprocess.py:93} INFO - #7 0x58a0af0390e2 <unknown>
+[2026-08-25T16:46:13.765+0000] {subprocess.py:93} INFO - #8 0x58a0af037589 <unknown>
+[2026-08-25T16:46:13.766+0000] {subprocess.py:93} INFO - #9 0x58a0af0378da <unknown>
+[2026-08-25T16:46:13.766+0000] {subprocess.py:93} INFO - #10 0x58a0af054a1c <unknown>
+[2026-08-25T16:46:13.766+0000] {subprocess.py:93} INFO - #11 0x58a0af0e7144 <unknown>
+[2026-08-25T16:46:13.767+0000] {subprocess.py:93} INFO - #12 0x58a0af0e6bc7 <unknown>
+[2026-08-25T16:46:13.767+0000] {subprocess.py:93} INFO - #13 0x58a0af0937b9 <unknown>
+[2026-08-25T16:46:13.767+0000] {subprocess.py:93} INFO - #14 0x58a0af0943d1 <unknown>
+[2026-08-25T16:46:13.767+0000] {subprocess.py:93} INFO - #15 0x58a0af74e826 <unknown>
+[2026-08-25T16:46:13.768+0000] {subprocess.py:93} INFO - #16 0x58a0af74d25d <unknown>
+[2026-08-25T16:46:13.768+0000] {subprocess.py:93} INFO - #17 0x58a0af74cc0a <unknown>
+[2026-08-25T16:46:13.768+0000] {subprocess.py:93} INFO - #18 0x58a0af73bd8a <unknown>
+[2026-08-25T16:46:13.768+0000] {subprocess.py:93} INFO - #19 0x58a0af74da73 <unknown>
+[2026-08-25T16:46:13.769+0000] {subprocess.py:93} INFO - #20 0x58a0af725e26 <unknown>
+[2026-08-25T16:46:13.769+0000] {subprocess.py:93} INFO - #21 0x58a0af7766d5 <unknown>
+[2026-08-25T16:46:13.769+0000] {subprocess.py:93} INFO - #22 0x58a0af7768c2 <unknown>
+[2026-08-25T16:46:13.770+0000] {subprocess.py:93} INFO - #23 0x58a0af78a0da <unknown>
+[2026-08-25T16:46:13.770+0000] {subprocess.py:93} INFO - #24 0x7b9302c09134 <unknown>
+[2026-08-25T16:46:13.770+0000] {subprocess.py:93} INFO - 
+[2026-08-25T16:46:13.771+0000] {subprocess.py:93} INFO - 
+[2026-08-25T16:46:13.771+0000] {subprocess.py:93} INFO - [2026-08-25 16:43:23] Ошибка в xglobus_parser.py
+[2026-08-25T16:46:13.771+0000] {subprocess.py:93} INFO - [2026-08-25 16:46:13] Результат парсера: xmagnit_parser.py
+[2026-08-25T16:46:38.707+0000] {subprocess.py:93} INFO - [2026-08-25 16:46:13] Используется undetected_chromedriver
+[2026-08-25T16:46:38.707+0000] {subprocess.py:93} INFO - Ошибка при создании драйвера: Message: session not created: cannot connect to chrome at 127.0.0.1:54297
+[2026-08-25T16:46:38.707+0000] {subprocess.py:93} INFO - from session not created: This version of ChromeDriver only supports Chrome version 147
+[2026-08-25T16:46:38.708+0000] {subprocess.py:93} INFO - Current browser version is 151.0.7922.173
+[2026-08-25T16:46:38.708+0000] {subprocess.py:93} INFO - Stacktrace:
+[2026-08-25T16:46:38.708+0000] {subprocess.py:93} INFO - #0 0x603409ec179a <unknown>
+[2026-08-25T16:46:38.709+0000] {subprocess.py:93} INFO - #1 0x6034098bd215 <unknown>
+[2026-08-25T16:46:38.709+0000] {subprocess.py:93} INFO - #2 0x60340990069f <unknown>
+[2026-08-25T16:46:38.709+0000] {subprocess.py:93} INFO - #3 0x6034098ff460 <unknown>
+[2026-08-25T16:46:38.709+0000] {subprocess.py:93} INFO - #4 0x6034098f4461 <unknown>
+[2026-08-25T16:46:38.710+0000] {subprocess.py:93} INFO - #5 0x603409944e1e <unknown>
+[2026-08-25T16:46:38.710+0000] {subprocess.py:93} INFO - #6 0x60340994450c <unknown>
+[2026-08-25T16:46:38.710+0000] {subprocess.py:93} INFO - #7 0x60340990355f <unknown>
+[2026-08-25T16:46:38.710+0000] {subprocess.py:93} INFO - #8 0x603409904321 <unknown>
+[2026-08-25T16:46:38.711+0000] {subprocess.py:93} INFO - #9 0x603409e8506b <unknown>
+[2026-08-25T16:46:38.711+0000] {subprocess.py:93} INFO - #10 0x603409e8801d <unknown>
+[2026-08-25T16:46:38.711+0000] {subprocess.py:93} INFO - #11 0x603409e71718 <unknown>
+[2026-08-25T16:46:38.711+0000] {subprocess.py:93} INFO - #12 0x603409e88bb0 <unknown>
+[2026-08-25T16:46:38.712+0000] {subprocess.py:93} INFO - #13 0x603409e58150 <unknown>
+[2026-08-25T16:46:38.712+0000] {subprocess.py:93} INFO - #14 0x603409eae5e8 <unknown>
+[2026-08-25T16:46:38.712+0000] {subprocess.py:93} INFO - #15 0x603409eae7b8 <unknown>
+[2026-08-25T16:46:38.712+0000] {subprocess.py:93} INFO - #16 0x603409ec01de <unknown>
+[2026-08-25T16:46:38.713+0000] {subprocess.py:93} INFO - #17 0x7bc41f6d7134 <unknown>
+[2026-08-25T16:46:38.713+0000] {subprocess.py:93} INFO - 
+[2026-08-25T16:46:38.713+0000] {subprocess.py:93} INFO - [i] Выбираем магазин
+[2026-08-25T16:46:38.713+0000] {subprocess.py:93} INFO - [✓] Поле поиска адреса найдено
+[2026-08-25T16:46:38.714+0000] {subprocess.py:93} INFO - [i] Введен адрес: Панфилова 2
+[2026-08-25T16:46:38.714+0000] {subprocess.py:93} INFO - [✓] Нажата кнопка 'Выбрать'
+[2026-08-25T16:46:38.714+0000] {subprocess.py:93} INFO - [✓] Магазин выбран по адресу: Панфилова 2
+[2026-08-25T16:46:38.714+0000] {subprocess.py:93} INFO - Яйцо Окское С1 → 102 (Яйцо Окское С1 белые 10шт)
+[2026-08-25T16:46:38.715+0000] {subprocess.py:93} INFO - Батон Коломенский Нарезной → 52 (Батон Нарезной нарезанный БКК Коломенский 200г)
+[2026-08-25T16:46:38.715+0000] {subprocess.py:93} INFO - Молоко Простоквашино отборное пастеризованное 3.4-4.5% → 99 (Молоко Простоквашино отборное пастеризованное 3.4-4.5% 930мл)
+[2026-08-25T16:46:38.715+0000] {subprocess.py:93} INFO - Сахар кусковой белый 1кг → 59,99 (Сахар Чайкофский белый кусковой 500г)
+[2026-08-25T16:46:38.715+0000] {subprocess.py:93} INFO - Соль пищевая 1кг → 24 (Соль Экстра пищевая 1кг)
+[2026-08-25T16:46:38.716+0000] {subprocess.py:93} INFO - Крупа гречневая Мистраль 900г → 115 (Крупа Мистраль Гречневая ядрица 900г)
+[2026-08-25T16:46:38.716+0000] {subprocess.py:93} INFO - Масло Олейна подсолнечное 1л → 133 (Масло подсолнечное Олейна 1л)
+[2026-08-25T16:46:38.716+0000] {subprocess.py:93} INFO - Масло Брест-Литовск сливочное 82,5% 180г → 169,99 (Масло сливочное Брест-Литовск 72.5% 180г)
+[2026-08-25T16:46:38.716+0000] {subprocess.py:93} INFO - Филе грудки цыпленка Петелинка → 1 (Филе цыпленка-бройлера Петелинка)
+[2026-08-25T16:46:38.717+0000] {subprocess.py:93} INFO - Чай Greenfield Golden Ceylon 100г → 269,99 (Чай черный Greenfield Golden Ceylon 200г)
+[2026-08-25T16:46:38.717+0000] {subprocess.py:93} INFO - Картофель → 96 (Картофель)
+[2026-08-25T16:46:38.717+0000] {subprocess.py:93} INFO - Лук репчатый → 48,99 (Лук репчатый)
+[2026-08-25T16:46:38.718+0000] {subprocess.py:93} INFO - Морковь → 52,5 (Морковь)
+[2026-08-25T16:46:38.718+0000] {subprocess.py:93} INFO - Капуста белокочанная → 216 (Капуста белокочанная)
+[2026-08-25T16:46:38.718+0000] {subprocess.py:93} INFO - Яблоки Гала → 159,2 (Яблоки Гала)
+[2026-08-25T16:46:38.718+0000] {subprocess.py:93} INFO - [OK] Сохранено: /opt/airflow/repo/data/raw/magnit_prices.csv
+[2026-08-25T16:46:38.719+0000] {subprocess.py:93} INFO - 
+[2026-08-25T16:46:38.719+0000] {subprocess.py:93} INFO - [2026-08-25 16:46:13] Парсер завершён: xmagnit_parser.py
+[2026-08-25T16:46:38.720+0000] {subprocess.py:93} INFO - [2026-08-25 16:46:35] Результат парсера: yandex_products_parser.py
+[2026-08-25T16:46:38.720+0000] {subprocess.py:93} INFO - [2026-08-25 16:46:35] Traceback (most recent call last):
+[2026-08-25T16:46:38.720+0000] {subprocess.py:93} INFO -   File "/opt/airflow/repo/etl/parsers/yandex_products_parser.py", line 182, in <module>
+[2026-08-25T16:46:38.721+0000] {subprocess.py:93} INFO -     main()
+[2026-08-25T16:46:38.721+0000] {subprocess.py:93} INFO -   File "/opt/airflow/repo/etl/parsers/yandex_products_parser.py", line 127, in main
+[2026-08-25T16:46:38.722+0000] {subprocess.py:93} INFO -     driver = create_driver()
+[2026-08-25T16:46:38.722+0000] {subprocess.py:93} INFO -              ^^^^^^^^^^^^^^^
+[2026-08-25T16:46:38.723+0000] {subprocess.py:93} INFO -   File "/opt/airflow/repo/etl/parsers/yandex_products_parser.py", line 74, in create_driver
+[2026-08-25T16:46:38.724+0000] {subprocess.py:93} INFO -     return webdriver.Chrome(options=options)
+[2026-08-25T16:46:38.725+0000] {subprocess.py:93} INFO -            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[2026-08-25T16:46:38.726+0000] {subprocess.py:93} INFO -   File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/chrome/webdriver.py", line 45, in __init__
+[2026-08-25T16:46:38.726+0000] {subprocess.py:93} INFO -     super().__init__(
+[2026-08-25T16:46:38.727+0000] {subprocess.py:93} INFO -   File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/chromium/webdriver.py", line 56, in __init__
+[2026-08-25T16:46:38.727+0000] {subprocess.py:93} INFO -     super().__init__(
+[2026-08-25T16:46:38.728+0000] {subprocess.py:93} INFO -   File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/remote/webdriver.py", line 207, in __init__
+[2026-08-25T16:46:38.728+0000] {subprocess.py:93} INFO -     self.start_session(capabilities)
+[2026-08-25T16:46:38.729+0000] {subprocess.py:93} INFO -   File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/remote/webdriver.py", line 291, in start_session
+[2026-08-25T16:46:38.729+0000] {subprocess.py:93} INFO -     response = self.execute(Command.NEW_SESSION, caps)["value"]
+[2026-08-25T16:46:38.730+0000] {subprocess.py:93} INFO -                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[2026-08-25T16:46:38.731+0000] {subprocess.py:93} INFO -   File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/remote/webdriver.py", line 346, in execute
+[2026-08-25T16:46:38.731+0000] {subprocess.py:93} INFO -     self.error_handler.check_response(response)
+[2026-08-25T16:46:38.732+0000] {subprocess.py:93} INFO -   File "/home/airflow/.local/lib/python3.11/site-packages/selenium/webdriver/remote/errorhandler.py", line 229, in check_response
+[2026-08-25T16:46:38.732+0000] {subprocess.py:93} INFO -     raise exception_class(message, screen, stacktrace)
+[2026-08-25T16:46:38.733+0000] {subprocess.py:93} INFO - selenium.common.exceptions.SessionNotCreatedException: Message: session not created: Chrome instance exited. Examine ChromeDriver verbose log to determine the cause.
+[2026-08-25T16:46:38.733+0000] {subprocess.py:93} INFO - Stacktrace:
+[2026-08-25T16:46:38.733+0000] {subprocess.py:93} INFO - #0 0x5e6c0502361e <unknown>
+[2026-08-25T16:46:38.734+0000] {subprocess.py:93} INFO - #1 0x5e6c048e8a44 <unknown>
+[2026-08-25T16:46:38.734+0000] {subprocess.py:93} INFO - #2 0x5e6c04923f02 <unknown>
+[2026-08-25T16:46:38.735+0000] {subprocess.py:93} INFO - #3 0x5e6c0491ea94 <unknown>
+[2026-08-25T16:46:38.735+0000] {subprocess.py:93} INFO - #4 0x5e6c0496d547 <unknown>
+[2026-08-25T16:46:38.735+0000] {subprocess.py:93} INFO - #5 0x5e6c0492b7b9 <unknown>
+[2026-08-25T16:46:38.736+0000] {subprocess.py:93} INFO - #6 0x5e6c0492c3d1 <unknown>
+[2026-08-25T16:46:38.736+0000] {subprocess.py:93} INFO - #7 0x5e6c04fe6826 <unknown>
+[2026-08-25T16:46:38.736+0000] {subprocess.py:93} INFO - #8 0x5e6c04fe525d <unknown>
+[2026-08-25T16:46:38.737+0000] {subprocess.py:93} INFO - #9 0x5e6c04fe4c0a <unknown>
+[2026-08-25T16:46:38.737+0000] {subprocess.py:93} INFO - #10 0x5e6c04fd3d8a <unknown>
+[2026-08-25T16:46:38.737+0000] {subprocess.py:93} INFO - #11 0x5e6c04fe5a73 <unknown>
+[2026-08-25T16:46:38.737+0000] {subprocess.py:93} INFO - #12 0x5e6c04fbde26 <unknown>
+[2026-08-25T16:46:38.738+0000] {subprocess.py:93} INFO - #13 0x5e6c0500e6d5 <unknown>
+[2026-08-25T16:46:38.738+0000] {subprocess.py:93} INFO - #14 0x5e6c0500e8c2 <unknown>
+[2026-08-25T16:46:38.738+0000] {subprocess.py:93} INFO - #15 0x5e6c050220da <unknown>
+[2026-08-25T16:46:38.738+0000] {subprocess.py:93} INFO - #16 0x7823811d7134 <unknown>
+[2026-08-25T16:46:38.739+0000] {subprocess.py:93} INFO - 
+[2026-08-25T16:46:38.739+0000] {subprocess.py:93} INFO - 
+[2026-08-25T16:46:38.739+0000] {subprocess.py:93} INFO - [2026-08-25 16:46:35] Ошибка в yandex_products_parser.py
+[2026-08-25T16:46:38.740+0000] {subprocess.py:93} INFO - [2026-08-25 16:46:38] Результат парсера: lenta_parser.py
+[2026-08-25T16:46:38.740+0000] {subprocess.py:93} INFO - [2026-08-25 16:46:38] Используется undetected_chromedriver
+[2026-08-25T16:46:38.740+0000] {subprocess.py:93} INFO - Ошибка при создании драйвера: Message: session not created: cannot connect to chrome at 127.0.0.1:49641
+[2026-08-25T16:46:38.740+0000] {subprocess.py:93} INFO - from session not created: This version of ChromeDriver only supports Chrome version 147
+[2026-08-25T16:46:38.741+0000] {subprocess.py:93} INFO - Current browser version is 151.0.7922.173
+[2026-08-25T16:46:38.741+0000] {subprocess.py:93} INFO - Stacktrace:
+[2026-08-25T16:46:38.741+0000] {subprocess.py:93} INFO - #0 0x5846da64379a <unknown>
+[2026-08-25T16:46:38.741+0000] {subprocess.py:93} INFO - #1 0x5846da03f215 <unknown>
+[2026-08-25T16:46:38.742+0000] {subprocess.py:93} INFO - #2 0x5846da08269f <unknown>
+[2026-08-25T16:46:38.742+0000] {subprocess.py:93} INFO - #3 0x5846da081460 <unknown>
+[2026-08-25T16:46:38.742+0000] {subprocess.py:93} INFO - #4 0x5846da076461 <unknown>
+[2026-08-25T16:46:38.742+0000] {subprocess.py:93} INFO - #5 0x5846da0c6e1e <unknown>
+[2026-08-25T16:46:38.743+0000] {subprocess.py:93} INFO - #6 0x5846da0c650c <unknown>
+[2026-08-25T16:46:38.743+0000] {subprocess.py:93} INFO - #7 0x5846da08555f <unknown>
+[2026-08-25T16:46:38.743+0000] {subprocess.py:93} INFO - #8 0x5846da086321 <unknown>
+[2026-08-25T16:46:38.743+0000] {subprocess.py:93} INFO - #9 0x5846da60706b <unknown>
+[2026-08-25T16:46:38.744+0000] {subprocess.py:93} INFO - #10 0x5846da60a01d <unknown>
+[2026-08-25T16:46:38.744+0000] {subprocess.py:93} INFO - #11 0x5846da5f3718 <unknown>
+[2026-08-25T16:46:38.744+0000] {subprocess.py:93} INFO - #12 0x5846da60abb0 <unknown>
+[2026-08-25T16:46:38.744+0000] {subprocess.py:93} INFO - #13 0x5846da5da150 <unknown>
+[2026-08-25T16:46:38.745+0000] {subprocess.py:93} INFO - #14 0x5846da6305e8 <unknown>
+[2026-08-25T16:46:38.745+0000] {subprocess.py:93} INFO - #15 0x5846da6307b8 <unknown>
+[2026-08-25T16:46:38.745+0000] {subprocess.py:93} INFO - #16 0x5846da6421de <unknown>
+[2026-08-25T16:46:38.745+0000] {subprocess.py:93} INFO - #17 0x78b5a6fd6134 <unknown>
+[2026-08-25T16:46:38.746+0000] {subprocess.py:93} INFO - 
+[2026-08-25T16:46:38.746+0000] {subprocess.py:93} INFO - Ищем: Яйцо куриное Окское С1 10шт
+[2026-08-25T16:46:38.746+0000] {subprocess.py:93} INFO - Ошибка: Яйцо куриное Окское С1 10шт: Message:
+[2026-08-25T16:46:38.746+0000] {subprocess.py:93} INFO - 
+[2026-08-25T16:46:38.747+0000] {subprocess.py:93} INFO - Ищем: Батон Коломенский Нарезной 200г
+[2026-08-25T16:46:38.747+0000] {subprocess.py:93} INFO - Ошибка: Батон Коломенский Нарезной 200г: Message:
+[2026-08-25T16:46:38.747+0000] {subprocess.py:93} INFO - 
+[2026-08-25T16:46:38.748+0000] {subprocess.py:93} INFO - Ищем: Молоко пастеризованное ПРОСТОКВАШИНО отборное
+[2026-08-25T16:46:38.748+0000] {subprocess.py:93} INFO - Ошибка: Молоко пастеризованное ПРОСТОКВАШИНО отборное: Message:
+[2026-08-25T16:46:38.748+0000] {subprocess.py:93} INFO - 
+[2026-08-25T16:46:38.748+0000] {subprocess.py:93} INFO - Ищем: Сахар кусковой белый 1кг
+[2026-08-25T16:46:38.749+0000] {subprocess.py:93} INFO - Ошибка: Сахар кусковой белый 1кг: Message:
+[2026-08-25T16:46:38.749+0000] {subprocess.py:93} INFO - 
+[2026-08-25T16:46:38.749+0000] {subprocess.py:93} INFO - Ищем: Соль пищевая 1кг
+[2026-08-25T16:46:38.749+0000] {subprocess.py:93} INFO - Ошибка: Соль пищевая 1кг: Message:
+[2026-08-25T16:46:38.750+0000] {subprocess.py:93} INFO - 
+[2026-08-25T16:46:38.750+0000] {subprocess.py:93} INFO - Ищем: Крупа гречневая Мистраль 900г
+[2026-08-25T16:46:38.750+0000] {subprocess.py:93} INFO - Ошибка: Крупа гречневая Мистраль 900г: Message:
+[2026-08-25T16:46:38.750+0000] {subprocess.py:93} INFO - 
+[2026-08-25T16:46:38.751+0000] {subprocess.py:93} INFO - Ищем: Масло Олейна подсолнечное 1л
+[2026-08-25T16:46:38.751+0000] {subprocess.py:93} INFO - Ошибка: Масло Олейна подсолнечное 1л: Message:
+[2026-08-25T16:46:38.751+0000] {subprocess.py:93} INFO - 
+[2026-08-25T16:46:38.752+0000] {subprocess.py:93} INFO - Ищем: Масло Брест-Литовск сливочное 82,5% 180г
+[2026-08-25T16:46:38.752+0000] {subprocess.py:93} INFO - Ошибка: Масло Брест-Литовск сливочное 82,5% 180г: Message:
+[2026-08-25T16:46:38.752+0000] {subprocess.py:93} INFO - 
+[2026-08-25T16:46:38.752+0000] {subprocess.py:93} INFO - Ищем: Филе грудки цыпленка Петелинка
+[2026-08-25T16:46:38.753+0000] {subprocess.py:93} INFO - Ошибка: Филе грудки цыпленка Петелинка: Message:
+[2026-08-25T16:46:38.753+0000] {subprocess.py:93} INFO - 
+[2026-08-25T16:46:38.753+0000] {subprocess.py:93} INFO - Ищем: Чай Greenfield Golden Ceylon 100г
+[2026-08-25T16:46:38.753+0000] {subprocess.py:93} INFO - Ошибка: Чай Greenfield Golden Ceylon 100г: Message:
+[2026-08-25T16:46:38.754+0000] {subprocess.py:93} INFO - 
+[2026-08-25T16:46:38.754+0000] {subprocess.py:93} INFO - Ищем: Картофель
+[2026-08-25T16:46:38.754+0000] {subprocess.py:93} INFO - Ошибка: Картофель: Message:
+[2026-08-25T16:46:38.754+0000] {subprocess.py:93} INFO - 
+[2026-08-25T16:46:38.755+0000] {subprocess.py:93} INFO - Ищем: Лук репчатый
+[2026-08-25T16:46:38.755+0000] {subprocess.py:93} INFO - Ошибка: Лук репчатый: Message:
+[2026-08-25T16:46:38.755+0000] {subprocess.py:93} INFO - 
+[2026-08-25T16:46:38.755+0000] {subprocess.py:93} INFO - Ищем: Морковь
+[2026-08-25T16:46:38.756+0000] {subprocess.py:93} INFO - Ошибка: Морковь: Message:
+[2026-08-25T16:46:38.756+0000] {subprocess.py:93} INFO - 
+[2026-08-25T16:46:38.756+0000] {subprocess.py:93} INFO - Ищем: Капуста белокочанная
+[2026-08-25T16:46:38.756+0000] {subprocess.py:93} INFO - Ошибка: Капуста белокочанная: Message:
+[2026-08-25T16:46:38.757+0000] {subprocess.py:93} INFO - 
+[2026-08-25T16:46:38.757+0000] {subprocess.py:93} INFO - Ищем: Яблоки Гала
+[2026-08-25T16:46:38.757+0000] {subprocess.py:93} INFO - Ошибка: Яблоки Гала: Message:
+[2026-08-25T16:46:38.757+0000] {subprocess.py:93} INFO - 
+[2026-08-25T16:46:38.758+0000] {subprocess.py:93} INFO - Сохранено 15 записей в /opt/airflow/repo/data/raw/lenta_prices.csv
+[2026-08-25T16:46:38.758+0000] {subprocess.py:93} INFO - 
+[2026-08-25T16:46:38.758+0000] {subprocess.py:93} INFO - [2026-08-25 16:46:38] Парсер завершён: lenta_parser.py
+[2026-08-25T16:46:38.758+0000] {subprocess.py:93} INFO - [2026-08-25 16:46:38] Некоторые парсеры завершились с ошибками:
+[2026-08-25T16:46:38.759+0000] {subprocess.py:93} INFO - /opt/airflow/repo/etl/transformer/transform.py:603: FutureWarning: The behavior of DataFrame concatenation with empty or all-NA entries is deprecated. In a future version, this will no longer exclude empty or all-NA columns when determining the result dtypes. To retain the old behavior, exclude the relevant entries before the concat operation.
+[2026-08-25T16:46:38.759+0000] {subprocess.py:93} INFO -   full_df = pd.concat(frames, ignore_index=True)
+[2026-08-25T16:46:39.952+0000] {subprocess.py:93} INFO - [2026-08-25 16:46:38] - xglobus_parser.py
+[2026-08-25T16:46:39.953+0000] {subprocess.py:93} INFO - [2026-08-25 16:46:38] - yandex_products_parser.py
+[2026-08-25T16:46:39.953+0000] {subprocess.py:93} INFO - [2026-08-25 16:46:38] Запуск transform шага
+[2026-08-25T16:46:39.953+0000] {subprocess.py:93} INFO - [OK] cleaned auchan_prices.csv (15 rows)
+[2026-08-25T16:46:39.954+0000] {subprocess.py:93} INFO - [OK] cleaned dixy_prices.csv (15 rows)
+[2026-08-25T16:46:39.954+0000] {subprocess.py:93} INFO - [OK] cleaned lenta_prices.csv (15 rows)
+[2026-08-25T16:46:39.954+0000] {subprocess.py:93} INFO - [OK] cleaned magnit_prices.csv (15 rows)
+[2026-08-25T16:46:39.955+0000] {subprocess.py:93} INFO - 
+[2026-08-25T16:46:39.955+0000] {subprocess.py:93} INFO - Saved: /opt/airflow/repo/data/processed/clean_prices.csv (60 rows)
+[2026-08-25T16:46:39.955+0000] {subprocess.py:93} INFO - [2026-08-25 16:46:38] Transform завершён
+[2026-08-25T16:46:39.956+0000] {subprocess.py:93} INFO - [2026-08-25 16:46:38] Загрузка данных в PostgreSQL
+[2026-08-25T16:46:39.956+0000] {subprocess.py:93} INFO - [2026-08-25 16:46:38] Ошибка загрузки clean_prices.csv: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+[2026-08-25T16:46:39.957+0000] {subprocess.py:93} INFO - 	Is the server running locally and accepting connections on that socket?
+[2026-08-25T16:46:39.957+0000] {subprocess.py:93} INFO - 
+[2026-08-25T16:46:39.957+0000] {subprocess.py:93} INFO - [2026-08-25 16:46:38] Запуск ML шага
+[2026-08-25T16:46:39.958+0000] {subprocess.py:93} INFO - [2026-08-25 16:46:38] Запуск ML обучения
+[2026-08-25T16:46:39.958+0000] {subprocess.py:93} INFO - [2026-08-25 16:46:39] === LOAD ===
+[2026-08-25T16:46:39.958+0000] {subprocess.py:93} INFO - 
+[2026-08-25T16:46:39.959+0000] {subprocess.py:93} INFO - [2026-08-25 16:46:39] Ошибка ML обучения
+[2026-08-25T16:46:39.959+0000] {subprocess.py:93} INFO - [2026-08-25 16:46:39] Traceback (most recent call last):
+[2026-08-25T16:46:39.959+0000] {subprocess.py:93} INFO -   File "/opt/airflow/repo/ml/price_model.py", line 330, in <module>
+[2026-08-25T16:46:39.960+0000] {subprocess.py:93} INFO -     main()
+[2026-08-25T16:46:39.960+0000] {subprocess.py:93} INFO -   File "/opt/airflow/repo/ml/price_model.py", line 262, in main
+[2026-08-25T16:46:39.960+0000] {subprocess.py:93} INFO -     df = load_data()
+[2026-08-25T16:46:39.961+0000] {subprocess.py:93} INFO -          ^^^^^^^^^^^
+[2026-08-25T16:46:39.961+0000] {subprocess.py:93} INFO -   File "/opt/airflow/repo/ml/price_model.py", line 82, in load_data
+[2026-08-25T16:46:39.961+0000] {subprocess.py:93} INFO -     conn = psycopg2.connect(**DB_CONFIG)
+[2026-08-25T16:46:39.962+0000] {subprocess.py:93} INFO -            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[2026-08-25T16:46:39.962+0000] {subprocess.py:93} INFO -   File "/home/airflow/.local/lib/python3.11/site-packages/psycopg2/__init__.py", line 122, in connect
+[2026-08-25T16:46:39.962+0000] {subprocess.py:93} INFO -     conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+[2026-08-25T16:46:39.963+0000] {subprocess.py:93} INFO -            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[2026-08-25T16:46:39.963+0000] {subprocess.py:93} INFO - psycopg2.OperationalError: connection to server at "localhost" (::1), port 5432 failed: Connection refused
+[2026-08-25T16:46:39.963+0000] {subprocess.py:93} INFO - 	Is the server running on that host and accepting TCP/IP connections?
+[2026-08-25T16:46:39.963+0000] {subprocess.py:93} INFO - connection to server at "localhost" (127.0.0.1), port 5432 failed: Connection refused
+[2026-08-25T16:46:39.964+0000] {subprocess.py:93} INFO - 	Is the server running on that host and accepting TCP/IP connections?
+[2026-08-25T16:46:39.964+0000] {subprocess.py:93} INFO - 
+[2026-08-25T16:46:39.964+0000] {subprocess.py:93} INFO - 
+[2026-08-25T16:46:39.965+0000] {subprocess.py:93} INFO - [2026-08-25 16:46:39] ETL pipeline завершён
+[2026-08-25T16:46:39.995+0000] {subprocess.py:97} INFO - Command exited with return code 0
+[2026-08-25T16:46:39.995+0000] {taskinstance.py:441} INFO - ::group::Post task execution logs
+[2026-08-25T16:46:40.013+0000] {taskinstance.py:1206} INFO - Marking task as SUCCESS. dag_id=price_etl_pipeline, task_id=run_scraping_etl, run_id=manual__2026-08-25T16:39:56.381319+00:00, execution_date=20260825T163956, start_date=20260825T163956, end_date=20260825T164640
+[2026-08-25T16:46:40.062+0000] {local_task_job_runner.py:240} INFO - Task exited with return code 0
+[2026-08-25T16:46:40.073+0000] {taskinstance.py:3503} INFO - 1 downstream tasks scheduled from follow-on schedule check
+[2026-08-25T16:46:40.076+0000] {local_task_job_runner.py:222} INFO - ::endgroup::

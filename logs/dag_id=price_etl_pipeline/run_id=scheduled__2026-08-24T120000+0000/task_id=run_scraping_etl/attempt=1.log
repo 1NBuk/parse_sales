@@ -1,0 +1,121 @@
+[2026-08-25T13:16:54.165+0000] {local_task_job_runner.py:120} INFO - ::group::Pre task execution logs
+[2026-08-25T13:16:54.181+0000] {taskinstance.py:2076} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: price_etl_pipeline.run_scraping_etl scheduled__2026-08-24T12:00:00+00:00 [queued]>
+[2026-08-25T13:16:54.185+0000] {taskinstance.py:2076} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: price_etl_pipeline.run_scraping_etl scheduled__2026-08-24T12:00:00+00:00 [queued]>
+[2026-08-25T13:16:54.188+0000] {taskinstance.py:2306} INFO - Starting attempt 1 of 3
+[2026-08-25T13:16:54.196+0000] {taskinstance.py:2330} INFO - Executing <Task(BashOperator): run_scraping_etl> on 2026-08-24 12:00:00+00:00
+[2026-08-25T13:16:54.203+0000] {standard_task_runner.py:64} INFO - Started process 178 to run task
+[2026-08-25T13:16:54.205+0000] {standard_task_runner.py:90} INFO - Running: ['airflow', 'tasks', 'run', 'price_etl_pipeline', 'run_scraping_etl', 'scheduled__2026-08-24T12:00:00+00:00', '--job-id', '11', '--raw', '--subdir', 'DAGS_FOLDER/price_etl_dag.py', '--cfg-path', '/tmp/tmpkej8c1w8']
+[2026-08-25T13:16:54.235+0000] {standard_task_runner.py:91} INFO - Job 11: Subtask run_scraping_etl
+[2026-08-25T13:16:54.262+0000] {task_command.py:426} INFO - Running <TaskInstance: price_etl_pipeline.run_scraping_etl scheduled__2026-08-24T12:00:00+00:00 [running]> on host 358c605ade12
+[2026-08-25T13:16:54.395+0000] {taskinstance.py:2648} INFO - Exporting env vars: AIRFLOW_CTX_DAG_OWNER='veta' AIRFLOW_CTX_DAG_ID='price_etl_pipeline' AIRFLOW_CTX_TASK_ID='run_scraping_etl' AIRFLOW_CTX_EXECUTION_DATE='2026-08-24T12:00:00+00:00' AIRFLOW_CTX_TRY_NUMBER='1' AIRFLOW_CTX_DAG_RUN_ID='scheduled__2026-08-24T12:00:00+00:00'
+[2026-08-25T13:16:54.396+0000] {taskinstance.py:430} INFO - ::endgroup::
+[2026-08-25T13:16:54.413+0000] {subprocess.py:63} INFO - Tmp dir root location: /tmp
+[2026-08-25T13:16:54.413+0000] {subprocess.py:75} INFO - Running command: ['/usr/bin/bash', '-c', 'python /opt/airflow/repo/etl/run_pipeline.py']
+[2026-08-25T13:16:54.419+0000] {subprocess.py:86} INFO - Output:
+[2026-08-25T13:16:55.466+0000] {subprocess.py:93} INFO - [2026-08-25 13:16:55] Запуск ETL pipeline
+[2026-08-25T13:16:55.467+0000] {subprocess.py:93} INFO - [2026-08-25 13:16:55] Найдено парсеров: 6
+[2026-08-25T13:17:10.457+0000] {subprocess.py:93} INFO - [2026-08-25 13:17:00] Результат парсера: auchan_parser.py
+[2026-08-25T13:17:10.457+0000] {subprocess.py:93} INFO - [2026-08-25 13:17:00] Traceback (most recent call last):
+[2026-08-25T13:17:10.458+0000] {subprocess.py:93} INFO -   File "/opt/airflow/repo/etl/parsers/auchan_parser.py", line 9, in <module>
+[2026-08-25T13:17:10.458+0000] {subprocess.py:93} INFO -     from selenium.webdriver.common.action_chains import ActionChains
+[2026-08-25T13:17:10.458+0000] {subprocess.py:93} INFO - ModuleNotFoundError: No module named 'selenium'
+[2026-08-25T13:17:10.458+0000] {subprocess.py:93} INFO - 
+[2026-08-25T13:17:10.459+0000] {subprocess.py:93} INFO - [2026-08-25 13:17:00] Ошибка в auchan_parser.py
+[2026-08-25T13:17:10.459+0000] {subprocess.py:93} INFO - [2026-08-25 13:17:00] Результат парсера: dixy_parser.py
+[2026-08-25T13:17:10.459+0000] {subprocess.py:93} INFO - [2026-08-25 13:17:00] Traceback (most recent call last):
+[2026-08-25T13:17:10.459+0000] {subprocess.py:93} INFO -   File "/opt/airflow/repo/etl/parsers/dixy_parser.py", line 10, in <module>
+[2026-08-25T13:17:10.460+0000] {subprocess.py:93} INFO -     from rapidfuzz import fuzz
+[2026-08-25T13:17:10.460+0000] {subprocess.py:93} INFO - ModuleNotFoundError: No module named 'rapidfuzz'
+[2026-08-25T13:17:10.460+0000] {subprocess.py:93} INFO - 
+[2026-08-25T13:17:10.460+0000] {subprocess.py:93} INFO - [2026-08-25 13:17:00] Ошибка в dixy_parser.py
+[2026-08-25T13:17:10.461+0000] {subprocess.py:93} INFO - [2026-08-25 13:17:04] Результат парсера: xglobus_parser.py
+[2026-08-25T13:17:10.461+0000] {subprocess.py:93} INFO - [2026-08-25 13:17:04] Traceback (most recent call last):
+[2026-08-25T13:17:10.461+0000] {subprocess.py:93} INFO -   File "/opt/airflow/repo/etl/parsers/xglobus_parser.py", line 12, in <module>
+[2026-08-25T13:17:10.461+0000] {subprocess.py:93} INFO -     from etl.driver_utils import create_driver
+[2026-08-25T13:17:10.462+0000] {subprocess.py:93} INFO -   File "/opt/airflow/repo/etl/driver_utils.py", line 4, in <module>
+[2026-08-25T13:17:10.462+0000] {subprocess.py:93} INFO -     from selenium import webdriver
+[2026-08-25T13:17:10.462+0000] {subprocess.py:93} INFO - ModuleNotFoundError: No module named 'selenium'
+[2026-08-25T13:17:10.462+0000] {subprocess.py:93} INFO - 
+[2026-08-25T13:17:10.463+0000] {subprocess.py:93} INFO - During handling of the above exception, another exception occurred:
+[2026-08-25T13:17:10.463+0000] {subprocess.py:93} INFO - 
+[2026-08-25T13:17:10.463+0000] {subprocess.py:93} INFO - Traceback (most recent call last):
+[2026-08-25T13:17:10.463+0000] {subprocess.py:93} INFO -   File "/opt/airflow/repo/etl/parsers/xglobus_parser.py", line 20, in <module>
+[2026-08-25T13:17:10.464+0000] {subprocess.py:93} INFO -     spec.loader.exec_module(driver_utils)
+[2026-08-25T13:17:10.464+0000] {subprocess.py:93} INFO -   File "<frozen importlib._bootstrap_external>", line 936, in exec_module
+[2026-08-25T13:17:10.464+0000] {subprocess.py:93} INFO -   File "<frozen importlib._bootstrap_external>", line 1073, in get_code
+[2026-08-25T13:17:10.464+0000] {subprocess.py:93} INFO -   File "<frozen importlib._bootstrap_external>", line 1130, in get_data
+[2026-08-25T13:17:10.465+0000] {subprocess.py:93} INFO - FileNotFoundError: [Errno 2] No such file or directory: '/opt/airflow/repo/etl/parsers/driver_utils.py'
+[2026-08-25T13:17:10.465+0000] {subprocess.py:93} INFO - 
+[2026-08-25T13:17:10.465+0000] {subprocess.py:93} INFO - [2026-08-25 13:17:04] Ошибка в xglobus_parser.py
+[2026-08-25T13:17:10.465+0000] {subprocess.py:93} INFO - [2026-08-25 13:17:04] Результат парсера: lenta_parser.py
+[2026-08-25T13:17:10.465+0000] {subprocess.py:93} INFO - [2026-08-25 13:17:04] Traceback (most recent call last):
+[2026-08-25T13:17:10.466+0000] {subprocess.py:93} INFO -   File "/opt/airflow/repo/etl/parsers/lenta_parser.py", line 7, in <module>
+[2026-08-25T13:17:10.466+0000] {subprocess.py:93} INFO -     from rapidfuzz import fuzz
+[2026-08-25T13:17:10.466+0000] {subprocess.py:93} INFO - ModuleNotFoundError: No module named 'rapidfuzz'
+[2026-08-25T13:17:10.467+0000] {subprocess.py:93} INFO - 
+[2026-08-25T13:17:10.467+0000] {subprocess.py:93} INFO - [2026-08-25 13:17:04] Ошибка в lenta_parser.py
+[2026-08-25T13:17:10.467+0000] {subprocess.py:93} INFO - [2026-08-25 13:17:07] Результат парсера: xmagnit_parser.py
+[2026-08-25T13:17:10.467+0000] {subprocess.py:93} INFO - [2026-08-25 13:17:07] Traceback (most recent call last):
+[2026-08-25T13:17:10.468+0000] {subprocess.py:93} INFO -   File "/opt/airflow/repo/etl/parsers/xmagnit_parser.py", line 10, in <module>
+[2026-08-25T13:17:10.468+0000] {subprocess.py:93} INFO -     from rapidfuzz import fuzz
+[2026-08-25T13:17:10.468+0000] {subprocess.py:93} INFO - ModuleNotFoundError: No module named 'rapidfuzz'
+[2026-08-25T13:17:10.468+0000] {subprocess.py:93} INFO - 
+[2026-08-25T13:17:10.469+0000] {subprocess.py:93} INFO - [2026-08-25 13:17:07] Ошибка в xmagnit_parser.py
+[2026-08-25T13:17:10.469+0000] {subprocess.py:93} INFO - [2026-08-25 13:17:09] Результат парсера: yandex_products_parser.py
+[2026-08-25T13:17:10.469+0000] {subprocess.py:93} INFO - [2026-08-25 13:17:09] Traceback (most recent call last):
+[2026-08-25T13:17:10.469+0000] {subprocess.py:93} INFO -   File "/opt/airflow/repo/etl/parsers/yandex_products_parser.py", line 12, in <module>
+[2026-08-25T13:17:10.470+0000] {subprocess.py:93} INFO -     from selenium import webdriver
+[2026-08-25T13:17:10.470+0000] {subprocess.py:93} INFO - ModuleNotFoundError: No module named 'selenium'
+[2026-08-25T13:17:10.470+0000] {subprocess.py:93} INFO - 
+[2026-08-25T13:17:10.470+0000] {subprocess.py:93} INFO - [2026-08-25 13:17:09] Ошибка в yandex_products_parser.py
+[2026-08-25T13:17:10.471+0000] {subprocess.py:93} INFO - [2026-08-25 13:17:09] Некоторые парсеры завершились с ошибками:
+[2026-08-25T13:17:10.471+0000] {subprocess.py:93} INFO - [2026-08-25 13:17:09] - auchan_parser.py
+[2026-08-25T13:17:10.471+0000] {subprocess.py:93} INFO - [2026-08-25 13:17:09] - dixy_parser.py
+[2026-08-25T13:17:10.471+0000] {subprocess.py:93} INFO - [2026-08-25 13:17:09] - xglobus_parser.py
+[2026-08-25T13:17:10.471+0000] {subprocess.py:93} INFO - [2026-08-25 13:17:09] - lenta_parser.py
+[2026-08-25T13:17:10.472+0000] {subprocess.py:93} INFO - [2026-08-25 13:17:09] - xmagnit_parser.py
+[2026-08-25T13:17:10.472+0000] {subprocess.py:93} INFO - [2026-08-25 13:17:09] - yandex_products_parser.py
+[2026-08-25T13:17:10.472+0000] {subprocess.py:93} INFO - [2026-08-25 13:17:09] Запуск transform шага
+[2026-08-25T13:17:10.472+0000] {subprocess.py:93} INFO - No data to process
+[2026-08-25T13:17:10.473+0000] {subprocess.py:93} INFO - [2026-08-25 13:17:09] Transform завершён
+[2026-08-25T13:17:10.473+0000] {subprocess.py:93} INFO - [2026-08-25 13:17:09] Загрузка данных в PostgreSQL
+[2026-08-25T13:17:10.473+0000] {subprocess.py:93} INFO - [2026-08-25 13:17:09] Ошибка загрузки clean_prices.csv: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+[2026-08-25T13:17:10.473+0000] {subprocess.py:93} INFO - 	Is the server running locally and accepting connections on that socket?
+[2026-08-25T13:17:10.474+0000] {subprocess.py:93} INFO - 
+[2026-08-25T13:17:10.474+0000] {subprocess.py:93} INFO - [2026-08-25 13:17:09] Запуск ML шага
+[2026-08-25T13:17:10.474+0000] {subprocess.py:93} INFO - [2026-08-25 13:17:09] Запуск ML обучения
+[2026-08-25T13:17:10.474+0000] {subprocess.py:93} INFO - [2026-08-25 13:17:10]
+[2026-08-25T13:17:10.475+0000] {subprocess.py:93} INFO - [2026-08-25 13:17:10] Ошибка ML обучения
+[2026-08-25T13:17:10.475+0000] {subprocess.py:93} INFO - [2026-08-25 13:17:10] Traceback (most recent call last):
+[2026-08-25T13:17:10.475+0000] {subprocess.py:93} INFO -   File "/opt/airflow/repo/ml/price_model.py", line 7, in <module>
+[2026-08-25T13:17:10.475+0000] {subprocess.py:93} INFO -     from catboost import CatBoostRegressor
+[2026-08-25T13:17:10.475+0000] {subprocess.py:93} INFO - ModuleNotFoundError: No module named 'catboost'
+[2026-08-25T13:17:10.476+0000] {subprocess.py:93} INFO - 
+[2026-08-25T13:17:10.476+0000] {subprocess.py:93} INFO - [2026-08-25 13:17:10] ETL pipeline завершён
+[2026-08-25T13:17:10.492+0000] {subprocess.py:97} INFO - Command exited with return code 0
+[2026-08-25T13:17:10.493+0000] {taskinstance.py:441} INFO - ::group::Post task execution logs
+[2026-08-25T13:17:10.507+0000] {taskinstance.py:1206} INFO - Marking task as SUCCESS. dag_id=price_etl_pipeline, task_id=run_scraping_etl, run_id=scheduled__2026-08-24T12:00:00+00:00, execution_date=20260824T120000, start_date=20260825T131654, end_date=20260825T131710
+[2026-08-25T13:17:10.526+0000] {local_task_job_runner.py:243} INFO - Task exited with return code 0
+[2026-08-25T13:17:10.535+0000] {taskinstance.py:3503} INFO - 1 downstream tasks scheduled from follow-on schedule check
+[2026-08-25T13:17:10.537+0000] {local_task_job_runner.py:222} INFO - ::endgroup::
+[2026-08-25T13:20:27.227+0000] {local_task_job_runner.py:120} INFO - ::group::Pre task execution logs
+[2026-08-25T13:20:27.246+0000] {taskinstance.py:2076} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: price_etl_pipeline.run_scraping_etl scheduled__2026-08-24T12:00:00+00:00 [queued]>
+[2026-08-25T13:20:27.250+0000] {taskinstance.py:2076} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: price_etl_pipeline.run_scraping_etl scheduled__2026-08-24T12:00:00+00:00 [queued]>
+[2026-08-25T13:20:27.250+0000] {taskinstance.py:2306} INFO - Starting attempt 1 of 3
+[2026-08-25T13:20:27.258+0000] {taskinstance.py:2330} INFO - Executing <Task(BashOperator): run_scraping_etl> on 2026-08-24 12:00:00+00:00
+[2026-08-25T13:20:27.261+0000] {standard_task_runner.py:64} INFO - Started process 180 to run task
+[2026-08-25T13:20:27.262+0000] {standard_task_runner.py:90} INFO - Running: ['airflow', 'tasks', 'run', 'price_etl_pipeline', 'run_scraping_etl', 'scheduled__2026-08-24T12:00:00+00:00', '--job-id', '16', '--raw', '--subdir', 'DAGS_FOLDER/price_etl_dag.py', '--cfg-path', '/tmp/tmpsh5ep9sd']
+[2026-08-25T13:20:27.264+0000] {standard_task_runner.py:91} INFO - Job 16: Subtask run_scraping_etl
+[2026-08-25T13:20:27.301+0000] {task_command.py:426} INFO - Running <TaskInstance: price_etl_pipeline.run_scraping_etl scheduled__2026-08-24T12:00:00+00:00 [running]> on host 8f346968d394
+[2026-08-25T13:20:27.453+0000] {taskinstance.py:2648} INFO - Exporting env vars: AIRFLOW_CTX_DAG_OWNER='veta' AIRFLOW_CTX_DAG_ID='price_etl_pipeline' AIRFLOW_CTX_TASK_ID='run_scraping_etl' AIRFLOW_CTX_EXECUTION_DATE='2026-08-24T12:00:00+00:00' AIRFLOW_CTX_TRY_NUMBER='1' AIRFLOW_CTX_DAG_RUN_ID='scheduled__2026-08-24T12:00:00+00:00'
+[2026-08-25T13:20:27.454+0000] {taskinstance.py:430} INFO - ::endgroup::
+[2026-08-25T13:20:27.465+0000] {subprocess.py:63} INFO - Tmp dir root location: /tmp
+[2026-08-25T13:20:27.466+0000] {subprocess.py:75} INFO - Running command: ['/usr/bin/bash', '-c', 'python /opt/airflow/repo/etl/run_pipeline.py']
+[2026-08-25T13:20:27.471+0000] {subprocess.py:86} INFO - Output:
+[2026-08-25T13:20:28.351+0000] {subprocess.py:93} INFO - [2026-08-25 13:20:28] Pipeline уже запускался сегодня. Выход.
+[2026-08-25T13:20:28.381+0000] {subprocess.py:97} INFO - Command exited with return code 0
+[2026-08-25T13:20:28.382+0000] {taskinstance.py:441} INFO - ::group::Post task execution logs
+[2026-08-25T13:20:28.398+0000] {taskinstance.py:1206} INFO - Marking task as SUCCESS. dag_id=price_etl_pipeline, task_id=run_scraping_etl, run_id=scheduled__2026-08-24T12:00:00+00:00, execution_date=20260824T120000, start_date=20260825T132027, end_date=20260825T132028
+[2026-08-25T13:20:28.437+0000] {local_task_job_runner.py:243} INFO - Task exited with return code 0
+[2026-08-25T13:20:28.446+0000] {taskinstance.py:3503} INFO - 1 downstream tasks scheduled from follow-on schedule check
+[2026-08-25T13:20:28.448+0000] {local_task_job_runner.py:222} INFO - ::endgroup::

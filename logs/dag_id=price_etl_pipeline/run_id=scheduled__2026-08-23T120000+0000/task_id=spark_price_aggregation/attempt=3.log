@@ -1,0 +1,39 @@
+[2026-08-24T19:47:25.926+0000] {local_task_job_runner.py:120} INFO - ::group::Pre task execution logs
+[2026-08-24T19:47:25.948+0000] {taskinstance.py:2076} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: price_etl_pipeline.spark_price_aggregation scheduled__2026-08-23T12:00:00+00:00 [queued]>
+[2026-08-24T19:47:25.952+0000] {taskinstance.py:2076} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: price_etl_pipeline.spark_price_aggregation scheduled__2026-08-23T12:00:00+00:00 [queued]>
+[2026-08-24T19:47:25.952+0000] {taskinstance.py:2306} INFO - Starting attempt 3 of 3
+[2026-08-24T19:47:25.958+0000] {taskinstance.py:2330} INFO - Executing <Task(PythonOperator): spark_price_aggregation> on 2026-08-23 12:00:00+00:00
+[2026-08-24T19:47:25.961+0000] {standard_task_runner.py:64} INFO - Started process 1315 to run task
+[2026-08-24T19:47:25.962+0000] {standard_task_runner.py:90} INFO - Running: ['airflow', 'tasks', 'run', 'price_etl_pipeline', 'spark_price_aggregation', 'scheduled__2026-08-23T12:00:00+00:00', '--job-id', '8', '--raw', '--subdir', 'DAGS_FOLDER/price_etl_dag.py', '--cfg-path', '/tmp/tmpuh9geirr']
+[2026-08-24T19:47:25.963+0000] {standard_task_runner.py:91} INFO - Job 8: Subtask spark_price_aggregation
+[2026-08-24T19:47:25.988+0000] {task_command.py:426} INFO - Running <TaskInstance: price_etl_pipeline.spark_price_aggregation scheduled__2026-08-23T12:00:00+00:00 [running]> on host 4cdcf698c72e
+[2026-08-24T19:47:26.116+0000] {taskinstance.py:2648} INFO - Exporting env vars: AIRFLOW_CTX_DAG_OWNER='veta' AIRFLOW_CTX_DAG_ID='price_etl_pipeline' AIRFLOW_CTX_TASK_ID='spark_price_aggregation' AIRFLOW_CTX_EXECUTION_DATE='2026-08-23T12:00:00+00:00' AIRFLOW_CTX_TRY_NUMBER='3' AIRFLOW_CTX_DAG_RUN_ID='scheduled__2026-08-23T12:00:00+00:00'
+[2026-08-24T19:47:26.117+0000] {taskinstance.py:430} INFO - ::endgroup::
+[2026-08-24T19:47:29.370+0000] {taskinstance.py:441} INFO - ::group::Post task execution logs
+[2026-08-24T19:47:29.370+0000] {taskinstance.py:2905} ERROR - Task failed with exception
+Traceback (most recent call last):
+  File "/home/airflow/.local/lib/python3.11/site-packages/airflow/models/taskinstance.py", line 465, in _execute_task
+    result = _execute_callable(context=context, **execute_callable_kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/airflow/.local/lib/python3.11/site-packages/airflow/models/taskinstance.py", line 432, in _execute_callable
+    return execute_callable(context=context, **execute_callable_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/airflow/.local/lib/python3.11/site-packages/airflow/models/baseoperator.py", line 401, in wrapper
+    return func(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/airflow/.local/lib/python3.11/site-packages/airflow/operators/python.py", line 235, in execute
+    return_value = self.execute_callable()
+                   ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/airflow/.local/lib/python3.11/site-packages/airflow/operators/python.py", line 252, in execute_callable
+    return self.python_callable(*self.op_args, **self.op_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/airflow/dags/price_etl_dag.py", line 36, in run_spark_aggregation
+    subprocess.run(
+  File "/usr/local/lib/python3.11/subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['python', '/opt/airflow/spark_jobs/aggregate_prices.py']' returned non-zero exit status 1.
+[2026-08-24T19:47:29.382+0000] {taskinstance.py:1206} INFO - Marking task as FAILED. dag_id=price_etl_pipeline, task_id=spark_price_aggregation, run_id=scheduled__2026-08-23T12:00:00+00:00, execution_date=20260823T120000, start_date=20260824T194725, end_date=20260824T194729
+[2026-08-24T19:47:29.390+0000] {standard_task_runner.py:110} ERROR - Failed to execute job 8 for task spark_price_aggregation (Command '['python', '/opt/airflow/spark_jobs/aggregate_prices.py']' returned non-zero exit status 1.; 1315)
+[2026-08-24T19:47:29.423+0000] {local_task_job_runner.py:243} INFO - Task exited with return code 1
+[2026-08-24T19:47:29.431+0000] {taskinstance.py:3503} INFO - 0 downstream tasks scheduled from follow-on schedule check
+[2026-08-24T19:47:29.435+0000] {local_task_job_runner.py:222} INFO - ::endgroup::

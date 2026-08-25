@@ -1,11 +1,20 @@
-FROM python:3.11-slim
+FROM apache/airflow:2.9.3-python3.11
 
-WORKDIR /app
+USER root
 
-COPY requirements.txt .
+# Java is required for PySpark, even in local (standalone) mode
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends openjdk-17-jre-headless curl && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
-RUN pip install --no-cache-dir -r requirements.txt
+ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+ENV SPARK_JARS=/opt/airflow/jars
 
-COPY . .
+RUN mkdir -p ${SPARK_JARS} && \
+    curl -L -o ${SPARK_JARS}/postgresql-42.7.3.jar \
+    https://jdbc.postgresql.org/download/postgresql-42.7.3.jar
 
-CMD ["python", "main.py"]
+USER airflow
+
+RUN pip install --no-cache-dir pyspark==3.5.1 psycopg2-binary
